@@ -6,7 +6,7 @@
 /*   By: eleni <eleni@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/12 14:42:10 by eleni             #+#    #+#             */
-/*   Updated: 2025/02/12 18:51:24 by eleni            ###   ########.fr       */
+/*   Updated: 2025/02/12 20:04:26 by eleni            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -33,7 +33,15 @@ int main(int argc, char** argv)
 		return 1;
 	}
 	file.close();
-	parseConfig parser;
-	parser.parse(filename);
+	try
+	{
+		parseConfig parser;
+		parser.parse(filename);	
+	}
+	catch(const std::exception& e)
+	{
+		std::cerr << e.what() << '\n';
+	}
+	
 	return 0;
 }

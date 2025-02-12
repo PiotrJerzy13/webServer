@@ -4,7 +4,7 @@ NAME = webServ
 
 # Compiler and Flags
 CXX = g++  # Use g++ for C++ files
-CXXFLAGS = -Wall -Werror -Wextra -std=c++11 -I./inc
+CXXFLAGS = -Wall -Werror -Wextra -std=c++11 -g -I./inc
 
 # Colors for output
 GREEN = \033[0;32m

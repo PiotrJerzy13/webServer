@@ -1,0 +1,145 @@
+http {
+    # • Choose the port and host of each ’server’.
+    server {
+        listen 8080;  # The port this server will listen on (port 8080)
+        server_name localhost;  # Define the server's hostname (localhost in this case)
+        
+        root /var/www/html;  # Root directory of the server
+
+        # • Setup default error pages.
+        error_page 404 /404.html;  # Custom 404 error page
+        error_page 500 502 503 504 /50x.html;  # Custom error pages for server errors
+
+        index index.html;  # Default index file to serve if the URL is a directory
+
+        # • Limit client body size.
+        client_max_body_size 10M;  # Limit the maximum body size for client requests (e.g., uploads)
+
+        # • Setup routes with one or multiple of the following rules/configuration
+        location / {
+            # • Define a list of accepted HTTP methods for the route.
+            limit_except GET POST {
+                deny all;  # Deny any HTTP methods except GET and POST
+            }
+
+            # • Define a directory or a file from where the file should be searched.
+            try_files $uri $uri/ =404;  # If the requested file doesn't exist, return a 404 error
+        }
+
+        # • Define a HTTP redirection.
+        location /google {
+            return 301 https://www.google.com;  # Redirect requests to /google to Google.com
+        }
+
+        # • Turn on or off directory listing.
+        location /files {
+            autoindex on;  # Enable directory listing for the /files directory
+        }
+
+        # • Set a default file to answer if the request is a directory.
+        location / {
+            index index.html;  # Serve index.html if the request is a directory
+        }
+
+        # • Execute CGI based on certain file extension (for example .php).
+        location ~ \.php$ {
+            fastcgi_pass 127.0.0.1:9000;  # Pass requests to PHP FastCGI (assuming PHP-FPM is running)
+            fastcgi_index index.php;  # Default script file for directories
+            fastcgi_param SCRIPT_FILENAME /var/www/html$fastcgi_script_name;  # Path to the PHP script
+            include fastcgi_params;  # Include FastCGI parameters
+        }
+
+        # • Make it work with POST and GET methods.
+        location / {
+            limit_except GET POST {
+                deny all;  # Allow only GET and POST methods for this route
+            }
+        }
+
+        # • Make the route able to accept uploaded files and configure where they should be saved.
+        location /upload {
+            # • Limit client body size for uploads
+            client_max_body_size 100M;  # Limit upload size to 100MB
+
+            # • Allow only POST requests for uploading files
+            limit_except POST {
+                deny all;  # Deny other HTTP methods for file upload
+            }
+
+            # Configure upload directory (you can modify as per your requirement)
+            upload_progress /tmp/uploads;  # Set the directory where uploads should be saved
+        }
+    }
+
+    # Second server block on a different port (e.g., 8081)
+    server {
+        listen 8081;  # The port this server will listen on (port 8081)
+        server_name 127.0.0.1;  # Define the server's hostname (127.0.0.1 in this case)
+
+        root /var/www/html;  # Root directory for this server
+
+        # • Setup default error pages.
+        error_page 404 /404.html;  # Custom 404 error page
+        error_page 500 502 503 504 /50x.html;  # Custom error pages for server errors
+
+        index index.html;  # Default index file to serve if the URL is a directory
+
+        # • Limit client body size.
+        client_max_body_size 10M;  # Limit the maximum body size for client requests (e.g., uploads)
+
+        # • Setup routes with one or multiple of the following rules/configuration
+        location / {
+            # • Define a list of accepted HTTP methods for the route.
+            limit_except GET POST {
+                deny all;  # Deny any HTTP methods except GET and POST
+            }
+
+            # • Define a directory or a file from where the file should be searched.
+            try_files $uri $uri/ =404;  # If the requested file doesn't exist, return a 404 error
+        }
+
+        # • Define a HTTP redirection.
+        location /google {
+            return 301 https://www.google.com;  # Redirect requests to /google to Google.com
+        }
+
+        # • Turn on or off directory listing.
+        location /files {
+            autoindex on;  # Enable directory listing for the /files directory
+        }
+
+        # • Set a default file to answer if the request is a directory.
+        location / {
+            index index.html;  # Serve index.html if the request is a directory
+        }
+
+        # • Execute CGI based on certain file extension (for example .php).
+        location ~ \.php$ {
+            fastcgi_pass 127.0.0.1:9000;  # Pass requests to PHP FastCGI (assuming PHP-FPM is running)
+            fastcgi_index index.php;  # Default script file for directories
+            fastcgi_param SCRIPT_FILENAME /var/www/html$fastcgi_script_name;  # Path to the PHP script
+            include fastcgi_params;  # Include FastCGI parameters
+        }
+
+        # • Make it work with POST and GET methods.
+        location / {
+            limit_except GET POST {
+                deny all;  # Allow only GET and POST methods for this route
+            }
+        }
+
+        # • Make the route able to accept uploaded files and configure where they should be saved.
+        location /upload {
+            # • Limit client body size for uploads
+            client_max_body_size 100M;  # Limit upload size to 100MB
+
+            # • Allow only POST requests for uploading files
+            limit_except POST {
+                deny all;  # Deny other HTTP methods for file upload
+            }
+
+            # Configure upload directory (you can modify as per your requirement)
+            upload_progress /tmp/uploads;  # Set the directory where uploads should be saved
+        }
+    }
+}

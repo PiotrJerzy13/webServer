@@ -6,16 +6,58 @@
 /*   By: eleni <eleni@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/12 18:29:11 by eleni             #+#    #+#             */
-/*   Updated: 2025/02/12 20:41:17 by eleni            ###   ########.fr       */
+/*   Updated: 2025/02/13 14:19:12 by eleni            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "parseConfig.hpp"
 
-void parseConfig::trim(std::string& line, int& brackets)
+std::string parseConfig::trim(const std::string& line)
 {
-	std::cout << line << std::endl;
+	size_t first = line.find_first_not_of(" \t");
+	size_t last = line.find_last_not_of(" \t");
+	std::string final = line;
+	
+	if (first == std::string::npos || last == std::string::npos)
+		final = "";
+	if (final.empty())
+		return "";
 
+	final = final.substr(first, (last - first + 1));
+	
+	if (!final.empty() && final[final.size() - 1] == ';')
+        final = final.substr(0, final.size() - 1);
+	return final;
+}
+
+void parseConfig::trimServer(const std::string& line)
+{		
+	std::string trimmedline = trim(line);
+
+	if (trimmedline.empty())
+		return ;
+	// std::cout << trimmedline << std::endl;
+	
+	size_t pos = trimmedline.find_first_of(" \t");
+	if (pos != std::string::npos)
+	{
+		std::string key = trimmedline.substr(0, pos);
+		std::string value = trimmedline.substr(pos + 1);
+
+		key = trim(key);
+		value = trim(value);
+		
+		// std::cout << key << " : " << value << std::endl;
+		
+		this->_parsingServer.insert({key, value});
+
+	}
+}
+
+void parseConfig::splitMaps(std::string& line, int& brackets)
+{
+	// std::cout << line << std::endl;
+		
 	if (line.find('{') != std::string::npos)
 	{
 			brackets++;
@@ -26,28 +68,30 @@ void parseConfig::trim(std::string& line, int& brackets)
 			brackets--;
 			// std::cout << brackets << std::endl;
 	}
+	
 	if (line.find("server ") != std::string::npos || line.find("server	") != std::string::npos)
 	{
 		this->_blocks.push("server");
 		// std::cout << _blocks.top() << std::endl;
 		return ;
 	}
-	if (line.find("location") != std::string::npos)
+	else if (line.find("location") != std::string::npos)
 	{
+		if (brackets > 3)
+			throw SyntaxErrorException();
 		this->_blocks.push("location");
 		return ;
 	}
-	if (!this->_blocks.empty() && this->_blocks.top() =="server")
+	else if (!this->_blocks.empty() && this->_blocks.top() =="server")
 	{
 		// std::cout << "Hi from Server" << std::endl;
-		// trimServer(line);
+		trimServer(line);
 	}
 	else if (!this->_blocks.empty() && this->_blocks.top() == "location")
 	{
 		// std::cout << "Hi from Location" << std::endl;
 		// trimLocation(line);
 	}
-
 }
 
 void parseConfig::parse(const std::string& filename)
@@ -64,15 +108,19 @@ void parseConfig::parse(const std::string& filename)
 		int brackets = 0;
 		while (std::getline(file, line))
 		{
-			trim(line, brackets);
-			// std::cout << line << std::endl;
+			splitMaps(line, brackets);
 		}
 		if (brackets != 0)
 			throw SyntaxErrorException();
+	}
+	
+	for (const auto& pair : _parsingServer) 
+	{
+		std::cout << pair.first << ": " << pair.second << std::endl;
 	}
 }
 
 const char* parseConfig::SyntaxErrorException::what() const throw()
 {
-    return "Exception: Closing bracket is missing";
+    return "Exception: Brackets or ';' is missing";
 }

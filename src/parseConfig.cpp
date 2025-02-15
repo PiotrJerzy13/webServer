@@ -6,7 +6,7 @@
 /*   By: eleni <eleni@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/12 18:29:11 by eleni             #+#    #+#             */
-/*   Updated: 2025/02/13 14:19:12 by eleni            ###   ########.fr       */
+/*   Updated: 2025/02/15 16:14:42 by eleni            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,8 +27,35 @@ std::string parseConfig::trim(const std::string& line)
 	
 	if (!final.empty() && final[final.size() - 1] == ';')
         final = final.substr(0, final.size() - 1);
+		
 	return final;
 }
+
+void parseConfig::fillLocationMap(std::string& line, const std::string& location)
+{
+	
+}
+
+std::string parseConfig::trimLocation(const std::string& line)
+{
+	std::string temp;
+	
+	if (line.find("location") != std::string::npos && line.find('{') != std::string::npos)
+	{
+		size_t posBracket = line.find('{');
+		temp = line.substr(0, posBracket);
+		// std::cout << temp << std::endl;
+		
+		temp = trim(temp);
+		// std::cout << temp << std::endl;
+		
+		size_t pos = temp.find_first_of(" \t");
+		std::string location = temp.substr(pos + 1);
+		
+		return location;
+	}
+}
+
 
 void parseConfig::trimServer(const std::string& line)
 {		
@@ -56,7 +83,7 @@ void parseConfig::trimServer(const std::string& line)
 
 void parseConfig::splitMaps(std::string& line, int& brackets)
 {
-	// std::cout << line << std::endl;
+	std::string location;
 		
 	if (line.find('{') != std::string::npos)
 	{
@@ -72,7 +99,7 @@ void parseConfig::splitMaps(std::string& line, int& brackets)
 	if (line.find("server ") != std::string::npos || line.find("server	") != std::string::npos)
 	{
 		this->_blocks.push("server");
-		// std::cout << _blocks.top() << std::endl;
+		// std::cout << line << std::endl;
 		return ;
 	}
 	else if (line.find("location") != std::string::npos)
@@ -80,6 +107,8 @@ void parseConfig::splitMaps(std::string& line, int& brackets)
 		if (brackets > 3)
 			throw SyntaxErrorException();
 		this->_blocks.push("location");
+		location = trimLocation(line);
+
 		return ;
 	}
 	else if (!this->_blocks.empty() && this->_blocks.top() =="server")
@@ -89,8 +118,7 @@ void parseConfig::splitMaps(std::string& line, int& brackets)
 	}
 	else if (!this->_blocks.empty() && this->_blocks.top() == "location")
 	{
-		// std::cout << "Hi from Location" << std::endl;
-		// trimLocation(line);
+		fillLocationMap(line, location);
 	}
 }
 
@@ -103,7 +131,7 @@ void parseConfig::parse(const std::string& filename)
 	}
 	else
 	{
-		std::cout << "File printed line by line ready to be parsed" << std::endl;
+		// std::cout << "File printed line by line ready to be parsed" << std::endl;
 		std::string line;
 		int brackets = 0;
 		while (std::getline(file, line))
@@ -114,10 +142,10 @@ void parseConfig::parse(const std::string& filename)
 			throw SyntaxErrorException();
 	}
 	
-	for (const auto& pair : _parsingServer) 
-	{
-		std::cout << pair.first << ": " << pair.second << std::endl;
-	}
+	// for (const auto& pair : _parsingServer) 
+	// {
+	// 	std::cout << pair.first << ": " << pair.second << std::endl;
+	// }
 }
 
 const char* parseConfig::SyntaxErrorException::what() const throw()

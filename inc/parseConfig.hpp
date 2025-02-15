@@ -6,7 +6,7 @@
 /*   By: eleni <eleni@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/12 17:50:48 by eleni             #+#    #+#             */
-/*   Updated: 2025/02/13 14:06:05 by eleni            ###   ########.fr       */
+/*   Updated: 2025/02/15 16:13:51 by eleni            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -30,9 +30,7 @@ class parseConfig
 		std::unordered_multimap<std::string, std::string> _parsingServer;
 		std::unordered_map<std::string, std::vector<std::string>> _parsingLocation;
 
-	void parse(const std::string& filename);
-	void splitMaps(std::string& line, int& brackets);
-	void trimServer(const std::string& line);
+		void parse(const std::string& filename);
 
 	class SyntaxErrorException : public std::exception
 	{
@@ -41,5 +39,9 @@ class parseConfig
 	};
 	
 	private:
+		void splitMaps(std::string& line, int& brackets);
+		void trimServer(const std::string& line);
+		std::string trimLocation(const std::string& line);
 		std::string trim(const std::string& line);
+		void fillLocationMap(std::string& line, const std::string& location);
 };

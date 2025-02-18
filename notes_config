@@ -3,8 +3,8 @@ http {
     server {
         listen 8080;  # The port this server will listen on (port 8080)
         server_name localhost;  # Define the server's hostname (localhost in this case)
-        
-        root /var/www/html;  # Root directory of the server
+
+        root /Users/anamieta/github-projects/webserv/www/html;  # Root directory of the server
 
         # • Setup default error pages.
         error_page 404 /404.html;  # Custom 404 error page

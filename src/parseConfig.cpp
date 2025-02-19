@@ -6,7 +6,7 @@
 /*   By: eleni <eleni@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/12 18:29:11 by eleni             #+#    #+#             */
-/*   Updated: 2025/02/19 16:04:49 by eleni            ###   ########.fr       */
+/*   Updated: 2025/02/19 16:12:33 by eleni            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -49,9 +49,9 @@ void parseConfig::fillLocationMap(std::string& line, const std::string& location
 
 		auto it = this->_parsingLocation.find(_location);
 		if (it != this->_parsingLocation.end()) 
-			it->second.push_back(key + " " + value); // Append to existing location 
+			it->second.push_back(key + " " + value);
 		else 
-			this->_parsingLocation.insert({_location, {key + " " + value}}); // Insert new location
+			this->_parsingLocation.insert({_location, {key + " " + value}});
 
 	}
 }

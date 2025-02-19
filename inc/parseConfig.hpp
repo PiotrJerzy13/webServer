@@ -6,7 +6,7 @@
 /*   By: eleni <eleni@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/12 17:50:48 by eleni             #+#    #+#             */
-/*   Updated: 2025/02/15 16:13:51 by eleni            ###   ########.fr       */
+/*   Updated: 2025/02/19 15:24:31 by eleni            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,7 +28,8 @@ class parseConfig
 	public:
 		std::stack<std::string> _blocks;
 		std::unordered_multimap<std::string, std::string> _parsingServer;
-		std::unordered_map<std::string, std::vector<std::string>> _parsingLocation;
+		std::unordered_multimap<std::string, std::vector<std::string>> _parsingLocation;
+		std::string _location;
 
 		void parse(const std::string& filename);
 

@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   parseConfig.cpp                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: anamieta <anamieta@student.42.fr>          +#+  +:+       +#+        */
+/*   By: eleni <eleni@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/12 18:29:11 by eleni             #+#    #+#             */
-/*   Updated: 2025/02/18 18:37:08 by anamieta         ###   ########.fr       */
+/*   Updated: 2025/02/19 15:25:20 by eleni            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -33,6 +33,7 @@ std::string parseConfig::trim(const std::string& line)
 
 void parseConfig::fillLocationMap(std::string& line, const std::string& location)
 {
+	(void)location;
 	std::string trimmedLine = trim(line);
 	if (trimmedLine.empty())
 		return;
@@ -46,9 +47,15 @@ void parseConfig::fillLocationMap(std::string& line, const std::string& location
 		key = trim(key);
 		value = trim(value);
 
-		this->_parsingLocation[location].push_back(key + " " + value);
+		auto it = this->_parsingLocation.find(_location);
+		if (it != this->_parsingLocation.end()) 
+			it->second.push_back(key + " " + value); // Append to existing location 
+		else 
+			this->_parsingLocation.insert({_location, {key + " " + value}}); // Insert new location
+
 	}
 }
+
 
 std::string parseConfig::trimLocation(const std::string& line)
 {
@@ -61,11 +68,13 @@ std::string parseConfig::trimLocation(const std::string& line)
 		// std::cout << temp << std::endl;
 
 		temp = trim(temp);
-		// std::cout << temp << std::endl;
 
 		size_t pos = temp.find_first_of(" \t");
 		std::string location = temp.substr(pos + 1);
 
+		// std::cout << location << std::endl;
+
+		
 		return location;
 	}
 	return "";
@@ -122,7 +131,8 @@ void parseConfig::splitMaps(std::string& line, int& brackets)
 		if (brackets > 3)
 			throw SyntaxErrorException();
 		this->_blocks.push("location");
-		location = trimLocation(line);
+		_location = trimLocation(line);
+		this->_parsingLocation.insert({_location, std::vector<std::string>()});
 
 		return ;
 	}

@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   webServer.cpp                                      :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: anamieta <anamieta@student.42.fr>          +#+  +:+       +#+        */
+/*   By: eleni <eleni@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/16 21:12:30 by anamieta          #+#    #+#             */
-/*   Updated: 2025/02/18 19:24:45 by anamieta         ###   ########.fr       */
+/*   Updated: 2025/02/19 15:33:42 by eleni            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -53,7 +53,7 @@ bool isPortAvailable(int port)
 }
 
 webServer::webServer(const std::unordered_multimap<std::string, std::string>& serverConfig,
-                     const std::unordered_map<std::string, std::vector<std::string>>& locationConfig)
+                     const std::unordered_multimap<std::string, std::vector<std::string>>& locationConfig)
     : _serverConfig(serverConfig), _locationConfig(locationConfig)
 {
     // Initialize server sockets and other configurations

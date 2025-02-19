@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   webServer.hpp                                      :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: anamieta <anamieta@student.42.fr>          +#+  +:+       +#+        */
+/*   By: eleni <eleni@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/16 21:11:58 by anamieta          #+#    #+#             */
-/*   Updated: 2025/02/18 18:29:32 by anamieta         ###   ########.fr       */
+/*   Updated: 2025/02/19 15:35:53 by eleni            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -23,7 +23,7 @@
 class webServer {
 	public:
 		webServer(const std::unordered_multimap<std::string, std::string>& serverConfig,
-					const std::unordered_map<std::string, std::vector<std::string>>& locationConfig);
+					const std::unordered_multimap<std::string, std::vector<std::string>>& locationConfig);
 		void start();
 	private:
 		void handleRequest(int clientSocket);
@@ -31,7 +31,7 @@ class webServer {
 		void setNonBlocking(int socket);
 
 		std::unordered_multimap<std::string, std::string> _serverConfig;
-		std::unordered_map<std::string, std::vector<std::string>> _locationConfig;
+		std::unordered_multimap<std::string, std::vector<std::string>> _locationConfig;
 		std::vector<int> _serverSockets;
 		std::vector<struct pollfd> _pollfds;
 };

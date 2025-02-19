@@ -1,9 +1,62 @@
-<!DOCTYPE html>
+<!-- <!DOCTYPE html>
 <html>
 <head>
     <title>42 webserv</title>
 </head>
 <body>
     <h1>Hello, World!</h1>
+</body>
+</html> -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>42 webserv</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 36px;
+            color: green;
+            height: 70vh;
+            margin: 40;
+            flex-direction: column;
+            text-align: center;
+        }
+        h1 {
+			height: 40vh;
+            margin-bottom: 20px;
+        }
+        .buttons {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            width: 50%;
+        }
+        .btn {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+        .btn:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <h1>* Web Serpents * </h1>
+    <div class="buttons">
+        <button class="btn">GET</button>
+        <button class="btn">POST</button>
+        <button class="btn">CGI</button>
+        <button class="btn">REDIRECT</button>
+    </div>
 </body>
 </html>

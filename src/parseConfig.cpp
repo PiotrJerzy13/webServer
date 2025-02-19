@@ -6,7 +6,7 @@
 /*   By: eleni <eleni@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/12 18:29:11 by eleni             #+#    #+#             */
-/*   Updated: 2025/02/19 15:25:20 by eleni            ###   ########.fr       */
+/*   Updated: 2025/02/19 16:04:49 by eleni            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -111,13 +111,21 @@ void parseConfig::splitMaps(std::string& line, int& brackets)
 
 	if (line.find('{') != std::string::npos)
 	{
-			brackets++;
-			// std::cout << brackets << std::endl;
+		brackets++;
+		// std::cout << brackets << std::endl;
 	}
 	else if (line.find('}') != std::string::npos)
 	{
-			brackets--;
-			// std::cout << brackets << std::endl;
+		if (brackets == 4)
+		{
+			auto it = this->_parsingLocation.find(this->_location);
+			if (it != this->_parsingLocation.end())
+				it->second.push_back("}");
+			else
+				this->_parsingLocation.insert({this->_location, {"}"}});  
+		}
+		brackets--;
+		// std::cout << brackets << std::endl;
 	}
 
 	if (line.find("server ") != std::string::npos || line.find("server	") != std::string::npos)
@@ -133,7 +141,6 @@ void parseConfig::splitMaps(std::string& line, int& brackets)
 		this->_blocks.push("location");
 		_location = trimLocation(line);
 		this->_parsingLocation.insert({_location, std::vector<std::string>()});
-
 		return ;
 	}
 	else if (!this->_blocks.empty() && this->_blocks.top() =="server")

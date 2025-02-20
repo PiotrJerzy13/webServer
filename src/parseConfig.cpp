@@ -6,7 +6,7 @@
 /*   By: eleni <eleni@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/12 18:29:11 by eleni             #+#    #+#             */
-/*   Updated: 2025/02/19 16:12:33 by eleni            ###   ########.fr       */
+/*   Updated: 2025/02/20 11:45:45 by eleni            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -53,7 +53,10 @@ void parseConfig::fillLocationMap(std::string& line, const std::string& location
 		else 
 			this->_parsingLocation.insert({_location, {key + " " + value}});
 
+		// std::cout << key << " : " << value << std::endl;
+		
 	}
+	
 }
 
 
@@ -73,7 +76,6 @@ std::string parseConfig::trimLocation(const std::string& line)
 		std::string location = temp.substr(pos + 1);
 
 		// std::cout << location << std::endl;
-
 		
 		return location;
 	}
@@ -122,7 +124,7 @@ void parseConfig::splitMaps(std::string& line, int& brackets)
 			if (it != this->_parsingLocation.end())
 				it->second.push_back("}");
 			else
-				this->_parsingLocation.insert({this->_location, {"}"}});  
+				this->_parsingLocation.insert({this->_location, {"}"}});
 		}
 		brackets--;
 		// std::cout << brackets << std::endl;

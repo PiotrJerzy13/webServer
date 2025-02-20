@@ -6,7 +6,7 @@
 /*   By: eleni <eleni@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/16 21:12:30 by anamieta          #+#    #+#             */
-/*   Updated: 2025/02/19 15:33:42 by eleni            ###   ########.fr       */
+/*   Updated: 2025/02/20 12:03:39 by eleni            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -60,9 +60,11 @@ webServer::webServer(const std::unordered_multimap<std::string, std::string>& se
     for (const auto& entry : _serverConfig)
     {
         if (entry.first == "listen")
-        {
+        {	
             int port = std::stoi(entry.second);
 
+			// std::cout << port << std::endl;
+			
             // Check if the port is available
             if (!isPortAvailable(port))
             {

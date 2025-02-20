@@ -6,7 +6,7 @@
 /*   By: eleni <eleni@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/12 18:29:11 by eleni             #+#    #+#             */
-/*   Updated: 2025/02/20 11:45:45 by eleni            ###   ########.fr       */
+/*   Updated: 2025/02/20 12:56:00 by eleni            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -158,23 +158,24 @@ void parseConfig::splitMaps(std::string& line, int& brackets)
 
 void parseConfig::parse(const std::string& filename)
 {
-	std::ifstream file(filename);
-	if (!file.is_open())
-	{
-		std::cerr << "Error: Could not open configuration file: " << filename << std::endl;
-	}
-	else
-	{
+	// std::ifstream file(filename);
+	// if (!file.is_open())
+	// {
+	// 	std::cerr << "Error: Could not open configuration file: " << filename << std::endl;
+	// }
+	// else
+	// {
 		// std::cout << "File printed line by line ready to be parsed" << std::endl;
 		std::string line;
 		int brackets = 0;
+		std::istringstream file(filename);
 		while (std::getline(file, line))
 		{
 			splitMaps(line, brackets);
 		}
 		if (brackets != 0)
 			throw SyntaxErrorException();
-	}
+	// }
 
 	// for (const auto& pair : _parsingServer)
 	// {

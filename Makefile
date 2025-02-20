@@ -18,7 +18,8 @@ OBJ_DIR = ./objs/
 # Source and Object files
 SRC = $(SRC_DIR)main.cpp \
       $(SRC_DIR)parseConfig.cpp \
-	  $(SRC_DIR)webServer.cpp
+	  $(SRC_DIR)webServer.cpp \
+	  $(SRC_DIR)utils.cpp \
 
 
 OBJ = $(addprefix $(OBJ_DIR), $(notdir $(SRC:.cpp=.o)))

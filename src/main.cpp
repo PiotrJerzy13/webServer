@@ -3,16 +3,18 @@
 /*                                                        :::      ::::::::   */
 /*   main.cpp                                           :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: eleni <eleni@student.42.fr>                +#+  +:+       +#+        */
+/*   By: anamieta <anamieta@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/12 14:42:10 by eleni             #+#    #+#             */
-/*   Updated: 2025/02/20 13:34:05 by eleni            ###   ########.fr       */
+/*   Updated: 2025/02/21 16:46:43 by anamieta         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "parseConfig.hpp"
 #include "webServer.hpp"
 #include "utils.hpp"
+
+// add killing ports in the signals
 
 int main(int argc, char** argv)
 {
@@ -36,24 +38,24 @@ int main(int argc, char** argv)
 
 	std::vector<parseConfig> parser;
 	parser = splitServers(file);
-	
+
     file.close();
 
 	for (size_t j = 0; j < parser.size(); j++)
 	{
 		try
 		{
-			parser[j].parse(parser[j]._mainString);		
+			parser[j].parse(parser[j]._mainString);
+    		webServer server(parser[j]._parsingServer, parser[j]._parsingLocation);
+		    server.start();
 		}
 		catch(const std::exception& e)
 		{
 			std::cerr << e.what() << '\n';
-		}	
+		}
 		// std::cout << "Server " << 1 << " configuration:\n";
-		// std::cout << parser[1]._mainString << std::endl;		
+		// std::cout << parser[1]._mainString << std::endl;
 	}
-		webServer server(parser[1]._parsingServer, parser[1]._parsingLocation);
-		server.start();
 
     return 0;
 }

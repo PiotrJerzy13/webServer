@@ -3,30 +3,14 @@
 /*                                                        :::      ::::::::   */
 /*   webServer.cpp                                      :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: eleni <eleni@student.42.fr>                +#+  +:+       +#+        */
+/*   By: anamieta <anamieta@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/16 21:12:30 by anamieta          #+#    #+#             */
-/*   Updated: 2025/02/20 12:03:39 by eleni            ###   ########.fr       */
+/*   Updated: 2025/02/21 14:32:52 by anamieta         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-// tips from Harsh:
-// setsockopt(); SO_REUSEADDR,
-// fcntl(); F_SETFL, O_NONBLOCK
-// memset to 0 after creating a variable
-
 #include "webServer.hpp"
-#include <sys/socket.h>
-#include <unistd.h>
-#include <cstring>
-#include <arpa/inet.h>
-#include <iostream>
-#include <sstream>
-#include <fstream>
-#include <string>
-#include <cstdlib>
-#include <cstdio>
-#include <array>
 
 bool isPortAvailable(int port)
 {
@@ -60,11 +44,11 @@ webServer::webServer(const std::unordered_multimap<std::string, std::string>& se
     for (const auto& entry : _serverConfig)
     {
         if (entry.first == "listen")
-        {	
+        {
             int port = std::stoi(entry.second);
 
 			// std::cout << port << std::endl;
-			
+
             // Check if the port is available
             if (!isPortAvailable(port))
             {
@@ -186,6 +170,13 @@ void webServer::handleRequest(int clientSocket)
     {
         // Get the root directory from the configuration
         std::string rootDir = _serverConfig.find("root")->second;
+
+        // Convert relative path to absolute path
+        if (rootDir.front() == '.')
+        {
+            rootDir = std::__fs::filesystem::canonical(rootDir).string();
+        }
+
         if (path.back() == '/')
         {
             path += "index.html";

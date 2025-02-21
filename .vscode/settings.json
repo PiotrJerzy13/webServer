@@ -69,6 +69,8 @@
 		"print": "cpp",
 		"execution": "cpp",
 		"queue": "cpp",
-		"variant": "cpp"
+		"variant": "cpp",
+		"filesystem": "cpp",
+		"csignal": "cpp"
 	}
 }

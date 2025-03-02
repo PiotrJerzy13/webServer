@@ -4,7 +4,7 @@ NAME = webServ
 
 # Compiler and Flags
 CXX = g++  # Use g++ for C++ files
-CXXFLAGS = -Wall -Werror -Wextra -std=c++11 -g -I./inc
+CXXFLAGS = -Wall -Werror -Wextra -std=c++17 -g -I./inc
 
 # Colors for output
 GREEN = \033[0;32m
@@ -20,6 +20,7 @@ SRC = $(SRC_DIR)main.cpp \
       $(SRC_DIR)parseConfig.cpp \
 	  $(SRC_DIR)webServer.cpp \
 	  $(SRC_DIR)utils.cpp \
+	  $(SRC_DIR)security.cpp \
 
 
 OBJ = $(addprefix $(OBJ_DIR), $(notdir $(SRC:.cpp=.o)))

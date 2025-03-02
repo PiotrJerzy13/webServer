@@ -1,53 +1,137 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>42 webserv</title>
-    <style>
-        body {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 36px;
-            color: green;
-            height: 70vh;
-            margin: 40;
-            flex-direction: column;
-            text-align: center;
-        }
-        h1 {
-			height: 40vh;
-            margin-bottom: 20px;
-        }
-        .buttons {
-            display: flex;
-            justify-content: space-around;
-            align-items: center;
-            width: 50%;
-        }
-        .btn {
-            padding: 10px 20px;
-            font-size: 16px;
-            cursor: pointer;
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            border-radius: 5px;
-        }
-        .btn:hover {
-            background-color: #45a049;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>42 Webserv</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f4f4f4;
+      color: #333;
+    }
+    .container {
+      max-width: 800px;
+      margin: 40px auto;
+      background: #fff;
+      padding: 30px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+    h1 {
+      margin-bottom: 20px;
+      color: #4CAF50;
+    }
+    .buttons {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 15px;
+      margin-bottom: 30px;
+    }
+    .btn {
+      padding: 10px 25px;
+      font-size: 16px;
+      background-color: #4CAF50;
+      border: none;
+      color: #fff;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+    .btn:hover {
+      background-color: #45a049;
+    }
+    .upload-form {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .upload-form input[type="text"] {
+      padding: 10px;
+      font-size: 16px;
+      width: 60%;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    .upload-form button {
+      padding: 10px 20px;
+      font-size: 16px;
+      background-color: #2196F3;
+      border: none;
+      color: #fff;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+    .upload-form button:hover {
+      background-color: #0b7dda;
+    }
+    #responseMessage {
+      font-size: 18px;
+      color: #00796B;
+      margin-top: 20px;
+    }
+  </style>
 </head>
 <body>
-    <h1>* Web Serpents * </h1>
+  <div class="container">
+    <h1>* Web Serpents *</h1>
     <div class="buttons">
-        <button class="btn">GET</button>
-        <button class="btn">POST</button>
-        <button class="btn">CGI</button>
-        <button class="btn" onclick="window.location.href='https://www.google.com'">REDIRECT</button>
-
+      <button class="btn" onclick="sendGetRequest()">GET</button>
+      <button class="btn" onclick="sendPostRequest()">POST</button>
+      <button class="btn">CGI</button>
+      <button class="btn" onclick="window.location.href='https://www.google.com'">REDIRECT</button>
     </div>
+    <!-- Upload Form -->
+    <form class="upload-form" id="uploadForm">
+      <input type="text" id="postData" placeholder="Enter text to upload">
+      <button type="submit">Upload</button>
+    </form>
+    <!-- Response Message -->
+    <div id="responseMessage"></div>
+  </div>
+  
+  <script>
+    document.getElementById('uploadForm').addEventListener('submit', function(event) {
+      event.preventDefault(); // Prevent page reload
+      const data = document.getElementById('postData').value;
+      fetch('/uploads', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: data
+      })
+      .then(response => response.text())
+      .then(text => {
+          document.getElementById('responseMessage').innerText = text;
+      })
+      .catch(error => {
+          document.getElementById('responseMessage').innerText = "Error uploading data!";
+          console.error('Error:', error);
+      });
+    });
+
+    function sendGetRequest() {
+      fetch('/uploads')
+          .then(response => response.text())
+          .then(data => alert("GET Response: " + data))
+          .catch(error => console.error('Error:', error));
+    }
+    
+    function sendPostRequest() {
+      fetch('/uploads', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: "Testing POST request!"
+      })
+      .then(response => response.text())
+      .then(text => alert("POST Response: " + text))
+      .catch(error => console.error('Error:', error));
+    }
+  </script>
 </body>
 </html>
+

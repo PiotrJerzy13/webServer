@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   webServer.hpp                                      :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: anamieta <anamieta@student.42.fr>          +#+  +:+       +#+        */
+/*   By: pwojnaro <pwojnaro@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/16 21:11:58 by anamieta          #+#    #+#             */
-/*   Updated: 2025/02/21 16:45:23 by anamieta         ###   ########.fr       */
+/*   Updated: 2025/03/02 15:12:27 by pwojnaro         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -40,6 +40,12 @@ class webServer {
         void handleRequest(int clientSocket);
         void sendResponse(int clientSocket, const std::string& response);
         void setNonBlocking(int socket);
+		void handleDeleteRequest(int clientSocket, const std::string& filePath);
+		void handlePostRequest(int clientSocket, const std::string& requestBody);
+		std::string sanitizePath(const std::string& path);
+		std::string sanitizeFilename(const std::string& filename);
+		std::string getContentType(const std::string& filePath);
+		void handleGetRequest(int clientSocket, const std::string& filePath);
 
         std::unordered_multimap<std::string, std::string> _serverConfig;
         std::unordered_multimap<std::string, std::vector<std::string>> _locationConfig;

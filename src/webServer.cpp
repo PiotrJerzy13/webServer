@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   webServer.cpp                                      :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: anamieta <anamieta@student.42.fr>          +#+  +:+       +#+        */
+/*   By: pwojnaro <pwojnaro@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/16 21:12:30 by anamieta          #+#    #+#             */
-/*   Updated: 2025/02/21 14:32:52 by anamieta         ###   ########.fr       */
+/*   Updated: 2025/03/02 15:44:04 by pwojnaro         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -154,62 +154,282 @@ void webServer::start()
 
 void webServer::handleRequest(int clientSocket)
 {
-    char buffer[1024];
-    memset(buffer, 0, sizeof(buffer));
-    read(clientSocket, buffer, sizeof(buffer) - 1);
+    std::vector<char> buffer(8192, 0);
+    ssize_t bytesRead = 0;
+    std::string fullRequest;
+    
+    do {
+        bytesRead = read(clientSocket, buffer.data(), buffer.size() - 1);
+        if (bytesRead > 0) {
+            fullRequest.append(buffer.data(), bytesRead);
+            
+            if (fullRequest.find("\r\n\r\n") != std::string::npos)
+			{
+                break;
+            }
+        }
+    } while (bytesRead > 0);
+    
+    if (fullRequest.empty())
+	{
+        sendResponse(clientSocket, "HTTP/1.1 400 Bad Request\r\nContent-Type: text/plain\r\n\r\nEmpty request");
+        return;
+    }
 
-    std::string request(buffer);
-    std::cout << "Received request: " << request << std::endl;
-
-    // Parse the request to get the method and path
-    std::istringstream requestStream(request);
+    std::istringstream requestStream(fullRequest);
     std::string method, path, version;
     requestStream >> method >> path >> version;
 
-    if (method == "GET")
-    {
-        // Get the root directory from the configuration
-        std::string rootDir = _serverConfig.find("root")->second;
-
-        // Convert relative path to absolute path
-        if (rootDir.front() == '.')
-        {
-            rootDir = std::__fs::filesystem::canonical(rootDir).string();
-        }
-
-        if (path.back() == '/')
-        {
-            path += "index.html";
-        }
-        std::string filePath = rootDir + path;
-        std::cout << "Looking for file: " << filePath << std::endl; // Debugging line
-
-        std::ifstream file(filePath);
-        if (file.is_open())
-        {
-            std::stringstream fileContent;
-            fileContent << file.rdbuf();
-            file.close();
-
-            std::string response = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n" + fileContent.str();
-            sendResponse(clientSocket, response);
-        }
-        else
-        {
-            std::cerr << "File not found: " << filePath << std::endl; // Debugging line
-            std::string response = "HTTP/1.1 404 Not Found\r\nContent-Type: text/html\r\n\r\n404 Not Found";
-            sendResponse(clientSocket, response);
+    if (method.empty() || path.empty() || version.empty())
+	{
+        sendResponse(clientSocket, "HTTP/1.1 400 Bad Request\r\nContent-Type: text/plain\r\n\r\nMalformed Request");
+        return;
+    }
+    
+    std::unordered_map<std::string, std::string> headerMap;
+    std::string line;
+    std::getline(requestStream, line);
+    
+    while (std::getline(requestStream, line) && line != "\r")
+	{
+        size_t colonPos = line.find(':');
+        if (colonPos != std::string::npos)
+		{
+            std::string name = line.substr(0, colonPos);
+            std::string value = line.substr(colonPos + 1);
+            value.erase(0, value.find_first_not_of(" \t"));
+            value.erase(value.find_last_not_of("\r\n") + 1);
+            
+            headerMap[name] = value;
         }
     }
-    else
-    {
-        // Handle other methods or return 405 Method Not Allowed
-        std::string response = "HTTP/1.1 405 Method Not Allowed\r\nContent-Type: text/html\r\n\r\n405 Method Not Allowed";
-        sendResponse(clientSocket, response);
+    std::string requestBody;
+    if (headerMap.find("Content-Length") != headerMap.end())
+	{
+        size_t contentLength = std::stoul(headerMap["Content-Length"]);
+        size_t headerEnd = fullRequest.find("\r\n\r\n");
+        
+        if (headerEnd != std::string::npos)
+		{
+            requestBody = fullRequest.substr(headerEnd + 4);
+            
+            while (requestBody.length() < contentLength)
+			{
+                bytesRead = read(clientSocket, buffer.data(), buffer.size() - 1);
+                if (bytesRead > 0)
+				{
+                    buffer[bytesRead] = '\0';
+                    requestBody.append(buffer.data(), bytesRead);
+                }
+				else
+				{
+                    break;
+                }
+            }
+        }
+    }
+
+    path = sanitizePath(path);
+    if (path.empty() || path[0] != '/')
+	{
+        sendResponse(clientSocket, "HTTP/1.1 400 Bad Request\r\nContent-Type: text/plain\r\n\r\nInvalid path");
+        return;
+    }
+
+    std::string rootDir = "./www";
+    if (_serverConfig.find("root") != _serverConfig.end())
+	{
+        rootDir = _serverConfig.find("root")->second;
+    }
+    
+    if (path.back() == '/') {
+        path += "index.html";
+    }
+
+    std::string filePath = rootDir + path;
+    std::cout << method << " " << path << " " << version << std::endl;
+
+    if (method == "GET")
+	{
+        handleGetRequest(clientSocket, filePath);
+    }
+	else if (method == "POST")
+	{
+        handlePostRequest(clientSocket, requestBody);
+    }
+	else if (method == "DELETE")
+	{
+        handleDeleteRequest(clientSocket, filePath);
+    }
+	else
+	{
+        sendResponse(clientSocket, "HTTP/1.1 405 Method Not Allowed\r\n"
+                               "Allow: GET, POST, DELETE\r\n"
+                               "Content-Type: text/plain\r\n\r\n"
+                               "Method Not Allowed");
+    }
+}
+
+void webServer::handleGetRequest(int clientSocket, const std::string& filePath)
+{
+    std::ifstream file(filePath, std::ios::binary);
+    if (!file.is_open())
+	{
+        std::cerr << "File not found: " << filePath << std::endl;
+        sendResponse(clientSocket, "HTTP/1.1 404 Not Found\r\nContent-Type: text/html\r\n\r\n<html><body><h1>404 Not Found</h1></body></html>");
+        return;
+    }
+
+    std::string contentType = getContentType(filePath);
+    
+    file.seekg(0, std::ios::end);
+    size_t fileSize = file.tellg();
+    file.seekg(0, std::ios::beg);
+    
+    std::vector<char> fileContent(fileSize);
+    file.read(fileContent.data(), fileSize);
+    file.close();
+    
+    std::stringstream responseHeader;
+    responseHeader << "HTTP/1.1 200 OK\r\n"
+                   << "Content-Type: " << contentType << "\r\n"
+                   << "Content-Length: " << fileSize << "\r\n"
+                   << "Connection: close\r\n"
+                   << "\r\n";
+    
+    std::string header = responseHeader.str();
+    write(clientSocket, header.c_str(), header.size());
+    write(clientSocket, fileContent.data(), fileSize);
+}
+
+std::string webServer::getContentType(const std::string& filePath)
+{
+    size_t dotPos = filePath.find_last_of(".");
+    if (dotPos == std::string::npos)
+	{
+        return "application/octet-stream";
+    }
+    
+    std::string ext = filePath.substr(dotPos + 1);
+    std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+    
+    if (ext == "html" || ext == "htm") return "text/html";
+    if (ext == "css") return "text/css";
+    if (ext == "js") return "application/javascript";
+    if (ext == "json") return "application/json";
+    if (ext == "txt") return "text/plain";
+    if (ext == "jpg" || ext == "jpeg") return "image/jpeg";
+    if (ext == "png") return "image/png";
+    if (ext == "gif") return "image/gif";
+    if (ext == "ico") return "image/x-icon";
+    if (ext == "svg") return "image/svg+xml";
+    if (ext == "pdf") return "application/pdf";
+    
+    return "application/octet-stream";
+}
+
+void webServer::handlePostRequest(int clientSocket, const std::string& requestBody)
+{
+    std::string uploadDir = "./www/uploads";
+    if (_serverConfig.find("upload_dir") != _serverConfig.end())
+	{
+        uploadDir = _serverConfig.find("upload_dir")->second;
+    }
+
+    std::filesystem::create_directories(uploadDir);
+    
+    // Generate a unique filename based on timestamp
+    std::time_t now = std::time(nullptr);
+    std::stringstream ss;
+    ss << "upload_" << now << ".txt";
+    std::string filename = ss.str();
+    
+    filename = sanitizeFilename(filename);
+    std::string filePath = uploadDir + "/" + filename;
+    std::string actualContent = requestBody;
+    size_t contentStart = requestBody.find("\r\n\r\n");
+    if (contentStart != std::string::npos) {
+        actualContent = requestBody.substr(contentStart + 4);
+    }
+
+    std::ofstream file(filePath, std::ios::out | std::ios::binary);
+    if (!file)
+	{
+        sendResponse(clientSocket, "HTTP/1.1 500 Internal Server Error\r\n"
+                               "Content-Type: text/plain\r\n\r\n"
+                               "Failed to save file");
+        return;
+    }
+    
+    file << actualContent;
+    file.close();
+    std::cout << "[POST] File saved: " << filename << std::endl;
+    
+    std::stringstream response;
+    response << "HTTP/1.1 201 Created\r\n"
+             << "Content-Type: text/plain\r\n"
+             << "Location: /uploads/" << filename << "\r\n\r\n"
+             << "File uploaded successfully!";
+    
+    sendResponse(clientSocket, response.str());
+}
+
+std::string webServer::sanitizeFilename(const std::string& filename)
+{
+    std::string result;
+    for (char c : filename)
+	{
+        if (isalnum(c) || c == '_' || c == '-' || c == '.')
+		{
+            result += c;
+        }
+		else
+		{
+            result += '_';
+        }
+    }
+    return result;
+}
+
+void webServer::handleDeleteRequest(int clientSocket, const std::string& filePath)
+{
+    if (!std::filesystem::exists(filePath))
+	{
+        std::cerr << "[DELETE] File not found: " << filePath << std::endl;
+        sendResponse(clientSocket, "HTTP/1.1 404 Not Found\r\nContent-Type: text/plain\r\n\r\nFile not found");
+        return;
+    }
+    if (!std::filesystem::is_regular_file(filePath))
+	{
+        sendResponse(clientSocket, "HTTP/1.1 403 Forbidden\r\nContent-Type: text/plain\r\n\r\nCannot delete directories");
+        return;
+    }
+    
+    try
+	{
+        if (std::filesystem::remove(filePath))
+		{
+            std::cout << "[DELETE] Successfully deleted file" << std::endl;
+            sendResponse(clientSocket, "HTTP/1.1 204 No Content\r\n\r\n");
+        }
+		else
+		{
+            std::cerr << "[DELETE] Failed to delete file" << std::endl;
+            sendResponse(clientSocket, "HTTP/1.1 500 Internal Server Error\r\nContent-Type: text/plain\r\n\r\nFailed to delete file");
+        }
+    }
+	catch (const std::filesystem::filesystem_error& e)
+	{
+        std::cerr << "[DELETE] Filesystem error: " << e.what() << std::endl;
+        sendResponse(clientSocket, "HTTP/1.1 500 Internal Server Error\r\nContent-Type: text/plain\r\n\r\nFailed to delete file");
     }
 }
 
 void webServer::sendResponse(int clientSocket, const std::string& response)
 {
-    write(clientSocket, response.c_str(), response.size());
+    ssize_t bytesWritten = write(clientSocket, response.c_str(), response.size());
+    if (bytesWritten < 0)
+	{
+        std::cerr << "Error sending response: " << strerror(errno) << std::endl;
+    }
 }

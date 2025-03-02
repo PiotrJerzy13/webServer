@@ -6,7 +6,7 @@
 /*   By: pwojnaro <pwojnaro@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/16 21:12:30 by anamieta          #+#    #+#             */
-/*   Updated: 2025/03/02 15:44:04 by pwojnaro         ###   ########.fr       */
+/*   Updated: 2025/03/02 18:13:01 by pwojnaro         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -228,7 +228,6 @@ void webServer::handleRequest(int clientSocket)
             }
         }
     }
-
     path = sanitizePath(path);
     if (path.empty() || path[0] != '/')
 	{
@@ -242,7 +241,8 @@ void webServer::handleRequest(int clientSocket)
         rootDir = _serverConfig.find("root")->second;
     }
     
-    if (path.back() == '/') {
+    if (path.back() == '/')
+	{
         path += "index.html";
     }
 
@@ -272,11 +272,62 @@ void webServer::handleRequest(int clientSocket)
 
 void webServer::handleGetRequest(int clientSocket, const std::string& filePath)
 {
+    struct stat fileStat;
+    if (stat(filePath.c_str(), &fileStat) == -1)
+	{
+        std::cerr << "File not found: " << filePath << std::endl;
+        
+        std::string contentType;
+        std::string errorPage = getDefaultErrorPage(404, contentType);
+        
+        std::stringstream response;
+        response << "HTTP/1.1 404 Not Found\r\n"
+                 << "Content-Type: " << contentType << "\r\n"
+                 << "Content-Length: " << errorPage.size() << "\r\n"
+                 << "Connection: close\r\n"
+                 << "\r\n"
+                 << errorPage;
+                 
+        sendResponse(clientSocket, response.str());
+        return;
+    }
+    
+    if (access(filePath.c_str(), R_OK) == -1)
+	{
+        std::cerr << "Permission denied: " << filePath << std::endl;
+        
+        std::string contentType;
+        std::string errorPage = getDefaultErrorPage(403, contentType);
+        
+        std::stringstream response;
+        response << "HTTP/1.1 403 Forbidden\r\n"
+                 << "Content-Type: " << contentType << "\r\n"
+                 << "Content-Length: " << errorPage.size() << "\r\n"
+                 << "Connection: close\r\n"
+                 << "\r\n"
+                 << errorPage;
+                 
+        sendResponse(clientSocket, response.str());
+        return;
+    }
+    
     std::ifstream file(filePath, std::ios::binary);
     if (!file.is_open())
 	{
-        std::cerr << "File not found: " << filePath << std::endl;
-        sendResponse(clientSocket, "HTTP/1.1 404 Not Found\r\nContent-Type: text/html\r\n\r\n<html><body><h1>404 Not Found</h1></body></html>");
+        std::cerr << "Failed to open file: " << filePath << std::endl;
+        
+        std::string contentType;
+        std::string errorPage = getDefaultErrorPage(500, contentType);
+        
+        std::stringstream response;
+        response << "HTTP/1.1 500 Internal Server Error\r\n"
+                 << "Content-Type: " << contentType << "\r\n"
+                 << "Content-Length: " << errorPage.size() << "\r\n"
+                 << "Connection: close\r\n"
+                 << "\r\n"
+                 << errorPage;
+                 
+        sendResponse(clientSocket, response.str());
         return;
     }
 
@@ -338,7 +389,6 @@ void webServer::handlePostRequest(int clientSocket, const std::string& requestBo
 
     std::filesystem::create_directories(uploadDir);
     
-    // Generate a unique filename based on timestamp
     std::time_t now = std::time(nullptr);
     std::stringstream ss;
     ss << "upload_" << now << ".txt";
@@ -374,52 +424,44 @@ void webServer::handlePostRequest(int clientSocket, const std::string& requestBo
     sendResponse(clientSocket, response.str());
 }
 
-std::string webServer::sanitizeFilename(const std::string& filename)
-{
-    std::string result;
-    for (char c : filename)
-	{
-        if (isalnum(c) || c == '_' || c == '-' || c == '.')
-		{
-            result += c;
-        }
-		else
-		{
-            result += '_';
-        }
-    }
-    return result;
-}
-
 void webServer::handleDeleteRequest(int clientSocket, const std::string& filePath)
 {
-    if (!std::filesystem::exists(filePath))
+    std::string adjustedFilePath = filePath;
+    size_t pos = filePath.find("/uploads/");
+    if (pos != std::string::npos)
 	{
-        std::cerr << "[DELETE] File not found: " << filePath << std::endl;
+         std::string filename = filePath.substr(pos + std::string("/uploads/").length());
+         adjustedFilePath = "./www/uploads/" + filename;
+    }
+    
+    if (!std::filesystem::exists(adjustedFilePath))
+    {
+        std::cerr << "[DELETE] File not found: " << adjustedFilePath << std::endl;
         sendResponse(clientSocket, "HTTP/1.1 404 Not Found\r\nContent-Type: text/plain\r\n\r\nFile not found");
         return;
     }
-    if (!std::filesystem::is_regular_file(filePath))
-	{
+
+    if (!std::filesystem::is_regular_file(adjustedFilePath))
+    {
         sendResponse(clientSocket, "HTTP/1.1 403 Forbidden\r\nContent-Type: text/plain\r\n\r\nCannot delete directories");
         return;
     }
     
     try
-	{
-        if (std::filesystem::remove(filePath))
-		{
-            std::cout << "[DELETE] Successfully deleted file" << std::endl;
+    {
+        if (std::filesystem::remove(adjustedFilePath))
+        {
+            std::cout << "[DELETE] Successfully deleted file: " << adjustedFilePath << std::endl;
             sendResponse(clientSocket, "HTTP/1.1 204 No Content\r\n\r\n");
         }
-		else
-		{
-            std::cerr << "[DELETE] Failed to delete file" << std::endl;
+        else
+        {
+            std::cerr << "[DELETE] Failed to delete file: " << adjustedFilePath << std::endl;
             sendResponse(clientSocket, "HTTP/1.1 500 Internal Server Error\r\nContent-Type: text/plain\r\n\r\nFailed to delete file");
         }
     }
-	catch (const std::filesystem::filesystem_error& e)
-	{
+    catch (const std::filesystem::filesystem_error& e)
+    {
         std::cerr << "[DELETE] Filesystem error: " << e.what() << std::endl;
         sendResponse(clientSocket, "HTTP/1.1 500 Internal Server Error\r\nContent-Type: text/plain\r\n\r\nFailed to delete file");
     }
@@ -433,3 +475,66 @@ void webServer::sendResponse(int clientSocket, const std::string& response)
         std::cerr << "Error sending response: " << strerror(errno) << std::endl;
     }
 }
+std::string webServer::getDefaultErrorPage(int errorCode, std::string& contentType)
+{
+    const std::string basePath = "./www/error_pages/";
+    const std::string imagePath = basePath + std::to_string(errorCode) + ".jpg";
+    const std::string defaultImagePath = basePath + "default.jpg";
+    
+    std::cout << "[INFO] Serving error page for code: " << errorCode << std::endl;
+    
+    std::ifstream imageFile(imagePath, std::ios::binary);
+    if (imageFile.good())
+	{
+        try {
+            std::stringstream imageStream;
+            imageStream << imageFile.rdbuf();
+            
+            if (imageStream.fail())
+			{
+                std::cerr << "[WARN] Failed to read error image: " << imagePath << std::endl;
+            }
+			else
+			{
+                contentType = "image/jpeg";
+                return imageStream.str();
+            }
+        }
+		catch (const std::exception& e) {
+            std::cerr << "[ERROR] Exception reading error image: " << e.what() << std::endl;
+        }
+        imageFile.close();
+    }
+
+    std::ifstream defaultImageFile(defaultImagePath, std::ios::binary);
+    if (defaultImageFile.good())
+	{
+        try {
+            std::stringstream imageStream;
+            imageStream << defaultImageFile.rdbuf();
+            
+            if (imageStream.fail())
+			{
+                std::cerr << "[WARN] Failed to read default error image" << std::endl;
+            }
+			else
+			{
+                contentType = "image/jpeg";  
+                return imageStream.str();
+            }
+        }
+		catch (const std::exception& e)
+		{
+            std::cerr << "[ERROR] Exception reading default error image: " << e.what() << std::endl;
+        }
+        defaultImageFile.close();
+    }
+	else
+	{
+        std::cerr << "[ERROR] Missing default error image: " << defaultImagePath << std::endl;
+    }
+
+    contentType = "text/plain";
+    return "Error " + std::to_string(errorCode) + ": Missing error page.";
+}
+

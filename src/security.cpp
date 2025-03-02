@@ -6,7 +6,7 @@
 /*   By: pwojnaro <pwojnaro@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/03/02 15:42:48 by pwojnaro          #+#    #+#             */
-/*   Updated: 2025/03/02 15:44:19 by pwojnaro         ###   ########.fr       */
+/*   Updated: 2025/03/02 16:08:58 by pwojnaro         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -67,4 +67,20 @@ std::string webServer::sanitizePath(const std::string& path)
         normalizedPath += normalizedSegments[i];
     }
     return normalizedPath;
+}
+std::string webServer::sanitizeFilename(const std::string& filename)
+{
+    std::string result;
+    for (char c : filename)
+	{
+        if (isalnum(c) || c == '_' || c == '-' || c == '.')
+		{
+            result += c;
+        }
+		else
+		{
+            result += '_';
+        }
+    }
+    return result;
 }

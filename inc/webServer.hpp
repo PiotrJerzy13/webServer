@@ -6,7 +6,7 @@
 /*   By: pwojnaro <pwojnaro@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/16 21:11:58 by anamieta          #+#    #+#             */
-/*   Updated: 2025/03/02 15:12:27 by pwojnaro         ###   ########.fr       */
+/*   Updated: 2025/03/02 17:56:33 by pwojnaro         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -30,6 +30,7 @@
 #include <array>
 #include <filesystem>
 #include <csignal>
+#include <sys/stat.h>
 
 class webServer {
     public:
@@ -46,7 +47,7 @@ class webServer {
 		std::string sanitizeFilename(const std::string& filename);
 		std::string getContentType(const std::string& filePath);
 		void handleGetRequest(int clientSocket, const std::string& filePath);
-
+		std::string getDefaultErrorPage(int errorCode, std::string& contentType);
         std::unordered_multimap<std::string, std::string> _serverConfig;
         std::unordered_multimap<std::string, std::vector<std::string>> _locationConfig;
         std::vector<int> _serverSockets;

@@ -6,7 +6,7 @@
 /*   By: pwojnaro <pwojnaro@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/16 21:11:58 by anamieta          #+#    #+#             */
-/*   Updated: 2025/03/02 17:56:33 by pwojnaro         ###   ########.fr       */
+/*   Updated: 2025/03/03 14:46:18 by pwojnaro         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -42,7 +42,9 @@ class webServer {
         void sendResponse(int clientSocket, const std::string& response);
         void setNonBlocking(int socket);
 		void handleDeleteRequest(int clientSocket, const std::string& filePath);
-		void handlePostRequest(int clientSocket, const std::string& requestBody);
+		void handlePostRequest(int clientSocket, const std::string& requestBody, const std::string& contentType);
+		void handleMethodNotAllowed(int clientSocket);
+		void processRequest(int clientSocket, const std::string& request);
 		std::string sanitizePath(const std::string& path);
 		std::string sanitizeFilename(const std::string& filename);
 		std::string getContentType(const std::string& filePath);
@@ -52,4 +54,6 @@ class webServer {
         std::unordered_multimap<std::string, std::vector<std::string>> _locationConfig;
         std::vector<int> _serverSockets;
         std::vector<struct pollfd> _pollfds;
+		std::string getCurrentTimeString();
+		std::string getFilePath(const std::string& path);
 };

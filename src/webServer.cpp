@@ -6,11 +6,12 @@
 /*   By: pwojnaro <pwojnaro@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/16 21:12:30 by anamieta          #+#    #+#             */
-/*   Updated: 2025/03/02 18:13:01 by pwojnaro         ###   ########.fr       */
+/*   Updated: 2025/03/03 14:58:37 by pwojnaro         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "webServer.hpp"
+#include <map>
 
 bool isPortAvailable(int port)
 {
@@ -248,14 +249,21 @@ void webServer::handleRequest(int clientSocket)
 
     std::string filePath = rootDir + path;
     std::cout << method << " " << path << " " << version << std::endl;
+	std::string contentType = "application/x-www-form-urlencoded";
 
+	auto it = headerMap.find("Content-Type");
+	if (it != headerMap.end())
+	{
+		contentType = it->second;
+	}
+	
     if (method == "GET")
 	{
         handleGetRequest(clientSocket, filePath);
     }
 	else if (method == "POST")
 	{
-        handlePostRequest(clientSocket, requestBody);
+        handlePostRequest(clientSocket, requestBody, contentType);
     }
 	else if (method == "DELETE")
 	{
@@ -263,10 +271,7 @@ void webServer::handleRequest(int clientSocket)
     }
 	else
 	{
-        sendResponse(clientSocket, "HTTP/1.1 405 Method Not Allowed\r\n"
-                               "Allow: GET, POST, DELETE\r\n"
-                               "Content-Type: text/plain\r\n\r\n"
-                               "Method Not Allowed");
+		handleMethodNotAllowed(clientSocket);
     }
 }
 
@@ -326,13 +331,12 @@ void webServer::handleGetRequest(int clientSocket, const std::string& filePath)
                  << "Connection: close\r\n"
                  << "\r\n"
                  << errorPage;
-                 
+
         sendResponse(clientSocket, response.str());
         return;
     }
 
     std::string contentType = getContentType(filePath);
-    
     file.seekg(0, std::ios::end);
     size_t fileSize = file.tellg();
     file.seekg(0, std::ios::beg);
@@ -379,50 +383,146 @@ std::string webServer::getContentType(const std::string& filePath)
     return "application/octet-stream";
 }
 
-void webServer::handlePostRequest(int clientSocket, const std::string& requestBody)
+void webServer::processRequest(int clientSocket, const std::string& request)
 {
-    std::string uploadDir = "./www/uploads";
-    if (_serverConfig.find("upload_dir") != _serverConfig.end())
+    std::string method, path, version;
+    std::istringstream requestStream(request);
+    requestStream >> method >> path >> version;
+    
+    std::map<std::string, std::string> headers;
+    std::string line;
+    while (std::getline(requestStream, line) && line != "\r")
 	{
+        size_t colonPos = line.find(":");
+        if (colonPos != std::string::npos)
+		{
+            std::string headerName = line.substr(0, colonPos);
+            std::string headerValue = line.substr(colonPos + 1);
+            headerValue.erase(0, headerValue.find_first_not_of(" "));
+            headerValue.erase(headerValue.find_last_not_of("\r") + 1);
+            headers[headerName] = headerValue;
+        }
+    }
+    std::string requestBody;
+    if (method == "POST")
+	{
+        std::stringstream bodyStream;
+        bodyStream << requestStream.rdbuf();
+        requestBody = bodyStream.str();
+    }
+    
+    if (method == "GET")
+	{
+        handleGetRequest(clientSocket, getFilePath(path));
+    } else if (method == "POST")
+	{
+        std::string contentType = "text/plain";
+        auto it = headers.find("Content-Type");
+        if (it != headers.end())
+		{
+            contentType = it->second;
+        }
+        handlePostRequest(clientSocket, requestBody, contentType);
+    }
+	else
+	{
+        handleMethodNotAllowed(clientSocket);
+    }
+}
+
+void webServer::handlePostRequest(int clientSocket, const std::string& requestBody, const std::string& contentType)
+{
+    std::string uploadDir = "./www/html/uploads";
+    if (_serverConfig.find("upload_dir") != _serverConfig.end())
+    {
         uploadDir = _serverConfig.find("upload_dir")->second;
     }
 
     std::filesystem::create_directories(uploadDir);
     
-    std::time_t now = std::time(nullptr);
-    std::stringstream ss;
-    ss << "upload_" << now << ".txt";
-    std::string filename = ss.str();
-    
-    filename = sanitizeFilename(filename);
-    std::string filePath = uploadDir + "/" + filename;
-    std::string actualContent = requestBody;
-    size_t contentStart = requestBody.find("\r\n\r\n");
-    if (contentStart != std::string::npos) {
-        actualContent = requestBody.substr(contentStart + 4);
-    }
-
-    std::ofstream file(filePath, std::ios::out | std::ios::binary);
-    if (!file)
+    if (contentType.find("multipart/form-data") != std::string::npos)
 	{
-        sendResponse(clientSocket, "HTTP/1.1 500 Internal Server Error\r\n"
+        std::string filename = "default_upload.txt";
+        size_t filenamePos = requestBody.find("filename=\"");
+        if (filenamePos != std::string::npos)
+		{
+            size_t start = filenamePos + 10;
+            size_t end = requestBody.find("\"", start);
+            if (end != std::string::npos)
+			{
+                filename = requestBody.substr(start, end - start);
+                filename = sanitizeFilename(filename);
+            }
+        }
+
+        std::string filePath = uploadDir + "/" + filename;
+        size_t contentStart = requestBody.find("\r\n\r\n");
+        if (contentStart != std::string::npos)
+		{
+            contentStart += 4;
+        }
+		else
+		{
+            sendResponse(clientSocket, "HTTP/1.1 400 Bad Request\r\nContent-Type: text/plain\r\n\r\nMalformed request");
+            return;
+        }
+
+        std::ofstream file(filePath, std::ios::out | std::ios::binary);
+        if (!file)
+        {
+            sendResponse(clientSocket, "HTTP/1.1 500 Internal Server Error\r\n"
+                                   "Content-Type: text/plain\r\n\r\n"
+                                   "Failed to save file");
+            return;
+        }
+        
+        file.write(requestBody.data() + contentStart, requestBody.size() - contentStart);
+        file.close();
+        std::cout << "[POST] File saved: " << filename << std::endl;
+    }
+    else if (contentType.find("application/x-www-form-urlencoded") != std::string::npos)
+	{
+
+        std::string filename = "form_data_" + getCurrentTimeString() + ".txt";
+        std::string filePath = uploadDir + "/" + filename;
+        
+        std::ofstream file(filePath, std::ios::out);
+        if (!file)
+        {
+            sendResponse(clientSocket, "HTTP/1.1 500 Internal Server Error\r\n"
+                                   "Content-Type: text/plain\r\n\r\n"
+                                   "Failed to save file");
+            return;
+        }
+        file << requestBody;
+        file.close();
+        std::cout << "[POST] Form data saved: " << filename << std::endl;
+    }
+    else
+	{
+
+        sendResponse(clientSocket, "HTTP/1.1 415 Unsupported Media Type\r\n"
                                "Content-Type: text/plain\r\n\r\n"
-                               "Failed to save file");
+                               "Unsupported content type");
         return;
     }
-    
-    file << actualContent;
-    file.close();
-    std::cout << "[POST] File saved: " << filename << std::endl;
-    
     std::stringstream response;
     response << "HTTP/1.1 201 Created\r\n"
-             << "Content-Type: text/plain\r\n"
-             << "Location: /uploads/" << filename << "\r\n\r\n"
+             << "Content-Type: text/plain\r\n\r\n"
              << "File uploaded successfully!";
     
     sendResponse(clientSocket, response.str());
 }
+
+std::string webServer::getCurrentTimeString()
+{
+    auto now = std::chrono::system_clock::now();
+    auto now_time_t = std::chrono::system_clock::to_time_t(now);
+    std::stringstream ss;
+    ss << std::put_time(std::localtime(&now_time_t), "%Y%m%d_%H%M%S");
+    return ss.str();
+}
+
 
 void webServer::handleDeleteRequest(int clientSocket, const std::string& filePath)
 {
@@ -446,7 +546,6 @@ void webServer::handleDeleteRequest(int clientSocket, const std::string& filePat
         sendResponse(clientSocket, "HTTP/1.1 403 Forbidden\r\nContent-Type: text/plain\r\n\r\nCannot delete directories");
         return;
     }
-    
     try
     {
         if (std::filesystem::remove(adjustedFilePath))
@@ -475,9 +574,10 @@ void webServer::sendResponse(int clientSocket, const std::string& response)
         std::cerr << "Error sending response: " << strerror(errno) << std::endl;
     }
 }
+
 std::string webServer::getDefaultErrorPage(int errorCode, std::string& contentType)
 {
-    const std::string basePath = "./www/error_pages/";
+    const std::string basePath = "./www/html/error_pages/";
     const std::string imagePath = basePath + std::to_string(errorCode) + ".jpg";
     const std::string defaultImagePath = basePath + "default.jpg";
     
@@ -537,4 +637,28 @@ std::string webServer::getDefaultErrorPage(int errorCode, std::string& contentTy
     contentType = "text/plain";
     return "Error " + std::to_string(errorCode) + ": Missing error page.";
 }
-
+void webServer::handleMethodNotAllowed(int clientSocket)
+{
+    std::string contentType;
+    std::string errorPage = getDefaultErrorPage(405, contentType);
+    
+    std::stringstream response;
+    response << "HTTP/1.1 405 Method Not Allowed\r\n"
+             << "Content-Type: " << contentType << "\r\n"
+             << "Content-Length: " << errorPage.size() << "\r\n"
+             << "Allow: GET, POST, DELETE\r\n"
+             << "Connection: close\r\n"
+             << "\r\n"
+             << errorPage;
+             
+    sendResponse(clientSocket, response.str());
+}
+std::string webServer::getFilePath(const std::string& path)
+{
+    std::string basePath = "./public";
+    if (path == "/" || path.empty())
+	{
+        return basePath + "/index.html";
+    }
+    return basePath + path;
+}

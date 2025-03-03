@@ -1,53 +1,507 @@
+<!-- <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>42 Webserv</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f4f4f4;
+      color: #333;
+    }
+    .container {
+      max-width: 800px;
+      margin: 40px auto;
+      background: #fff;
+      padding: 30px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+    h1 {
+      margin-bottom: 20px;
+      color: #4CAF50;
+    }
+    .buttons {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 15px;
+      margin-bottom: 30px;
+    }
+    .btn {
+      padding: 10px 25px;
+      font-size: 16px;
+      background-color: #4CAF50;
+      border: none;
+      color: #fff;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+    .btn:hover {
+      background-color: #45a049;
+    }
+    .error-btn {
+      background-color: #f44336;
+    }
+    .error-btn:hover {
+      background-color: #d32f2f;
+    }
+    .upload-form {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .upload-form input[type="text"] {
+      padding: 10px;
+      font-size: 16px;
+      width: 60%;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    .upload-form button {
+      padding: 10px 20px;
+      font-size: 16px;
+      background-color: #2196F3;
+      border: none;
+      color: #fff;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+    .upload-form button:hover {
+      background-color: #0b7dda;
+    }
+    #responseMessage {
+      font-size: 18px;
+      color: #00796B;
+      margin-top: 20px;
+    }
+    .error-section {
+      margin-top: 30px;
+      padding: 15px;
+      background-color: #ffebee;
+      border: 1px solid #ffcdd2;
+      border-radius: 5px;
+    }
+    .error-section h2 {
+      color: #c62828;
+      margin-top: 0;
+    }
+    .error-frame {
+      width: 100%;
+      height: 400px;
+      border: 1px solid #ccc;
+      margin-top: 20px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>* Web Serpents *</h1>
+    <div class="buttons">
+      <button class="btn" onclick="sendGetRequest()">GET</button>
+      <button class="btn" onclick="sendPostRequest()">POST</button>
+      <button class="btn">CGI</button>
+      <button class="btn" onclick="window.location.href='https://www.google.com'">REDIRECT</button>
+    </div>
+    
+    Upload Form
+    <form class="upload-form" id="uploadForm">
+      <input type="text" id="postData" placeholder="Enter text to upload">
+      <button type="submit">Upload</button>
+    </form>
+    
+    Response Message -->
+    <!-- <div id="responseMessage"></div> -->
+    
+    <!-- Error Testing Section -->
+    <!-- <div class="error-section"> -->
+      <!-- <h2>Error Testing</h2>
+      <p>Click the button below to see a 405 Method Not Allowed error:</p>
+      <button class="btn error-btn" onclick="showError405()">Show 405 Error</button>
+      <p id="errorInfo" style="display: none;">Loading 405 error page...</p>
+    </div>
+    
+    Error frame to display the error page -->
+    <!-- <iframe id="errorFrame" class="error-frame" frameborder="0"></iframe>
+  </div>
+  
+  <script> -->
+    <!-- document.getElementById('uploadForm').addEventListener('submit', function(event) {
+      event.preventDefault(); // Prevent page reload
+      const data = document.getElementById('postData').value;
+      fetch('/uploads', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: data
+      })
+      .then(response => response.text())
+      .then(text => {
+          document.getElementById('responseMessage').innerText = text;
+      })
+      .catch(error => {
+          document.getElementById('responseMessage').innerText = "Error uploading data!";
+          console.error('Error:', error);
+      });
+    });
+    
+    function sendGetRequest() {
+      fetch('/uploads')
+          .then(response => response.text())
+          .then(data => alert("GET Response: " + data))
+          .catch(error => console.error('Error:', error));
+    }
+    
+    function sendPostRequest() {
+      fetch('/uploads', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: "Testing POST request!"
+      })
+      .then(response => response.text())
+      .then(text => alert("POST Response: " + text))
+      .catch(error => console.error('Error:', error));
+    }
+    
+    function showError405() {
+      const errorInfo = document.getElementById('errorInfo');
+      const errorFrame = document.getElementById('errorFrame');
+      
+      // Show loading message
+      errorInfo.style.display = 'block';
+      
+      // Option 1: Open in a new tab/window
+      window.open('error_405.html', '_blank');
+      
+      // Option 2: Display in iframe (if the server supports iframes for error pages)
+      // Create a hidden form that will submit with FOO method
+      const form = document.createElement('form');
+      form.method = 'FOO';  // This won't actually work as intended in HTML, but we'll use it
+      form.action = '/index.html';
+      form.target = 'errorFrame';
+      document.body.appendChild(form);
+      
+      // Display the iframe
+      errorFrame.style.display = 'block';
+      
+      // Submit the form to trigger the error
+      try {
+        form.submit();  // This might not actually use the FOO method due to browser limitations
+      } catch (e) {
+        console.error('Form submission error:', e);
+      }
+      
+      // Remove the form
+      document.body.removeChild(form); -->
+<!--       
+      // Update message
+      errorInfo.innerHTML = 'Attempting to show 405 error page. If not visible, <a href="error_405.html" target="_blank">click here</a> to open directly.';
+    }
+  </script>
+</body>
+</html> -->
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>42 webserv</title>
-    <style>
-        body {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 36px;
-            color: green;
-            height: 70vh;
-            margin: 40;
-            flex-direction: column;
-            text-align: center;
-        }
-        h1 {
-			height: 40vh;
-            margin-bottom: 20px;
-        }
-        .buttons {
-            display: flex;
-            justify-content: space-around;
-            align-items: center;
-            width: 50%;
-        }
-        .btn {
-            padding: 10px 20px;
-            font-size: 16px;
-            cursor: pointer;
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            border-radius: 5px;
-        }
-        .btn:hover {
-            background-color: #45a049;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>42 Webserv</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f4f4f4;
+      color: #333;
+    }
+    .container {
+      max-width: 800px;
+      margin: 40px auto;
+      background: #fff;
+      padding: 30px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+    h1 {
+      margin-bottom: 20px;
+      color: #4CAF50;
+    }
+    .buttons {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 15px;
+      margin-bottom: 30px;
+    }
+    .btn {
+      padding: 10px 25px;
+      font-size: 16px;
+      background-color: #4CAF50;
+      border: none;
+      color: #fff;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+    .btn:hover {
+      background-color: #45a049;
+    }
+    .error-btn {
+      background-color: #f44336;
+    }
+    .error-btn:hover {
+      background-color: #d32f2f;
+    }
+    .upload-form {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .upload-form input[type="text"] {
+      padding: 10px;
+      font-size: 16px;
+      width: 60%;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    .upload-form button {
+      padding: 10px 20px;
+      font-size: 16px;
+      background-color: #2196F3;
+      border: none;
+      color: #fff;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+    .upload-form button:hover {
+      background-color: #0b7dda;
+    }
+    .upload-section {
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 1px solid #ddd;
+    }
+    .upload-section h2 {
+      margin-top: 0;
+      color: #2196F3;
+    }
+    .file-upload {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 15px;
+      margin-top: 20px;
+    }
+    .file-upload input[type="file"] {
+      width: 80%;
+      max-width: 400px;
+      padding: 10px;
+      border: 1px dashed #ccc;
+      border-radius: 5px;
+      background: #f9f9f9;
+    }
+    #responseMessage {
+      font-size: 18px;
+      color: #00796B;
+      margin-top: 20px;
+      padding: 10px;
+      border-radius: 5px;
+      background-color: #f0f8ff;
+      display: none;
+    }
+    .error-section {
+      margin-top: 30px;
+      padding: 15px;
+      background-color: #ffebee;
+      border: 1px solid #ffcdd2;
+      border-radius: 5px;
+    }
+    .error-section h2 {
+      color: #c62828;
+      margin-top: 0;
+    }
+    .error-frame {
+      width: 100%;
+      height: 400px;
+      border: 1px solid #ccc;
+      margin-top: 20px;
+      display: none;
+    }
+  </style>
 </head>
 <body>
-    <h1>* Web Serpents * </h1>
+  <div class="container">
+    <h1>* Web Serpents *</h1>
     <div class="buttons">
-        <button class="btn">GET</button>
-        <button class="btn">POST</button>
-        <button class="btn">CGI</button>
-        <button class="btn" onclick="window.location.href='https://www.google.com'">REDIRECT</button>
-
+      <button class="btn" onclick="sendGetRequest()">GET</button>
+      <button class="btn" onclick="sendPostRequest()">POST</button>
+      <button class="btn">CGI</button>
+      <button class="btn" onclick="window.location.href='https://www.google.com'">REDIRECT</button>
     </div>
+    
+    <div class="upload-section">
+      <h2>Upload Data</h2>
+      
+      <!-- Text Upload Form -->
+      <form class="upload-form" id="uploadForm">
+        <input type="text" id="postData" placeholder="Enter text to upload">
+        <button type="submit">Upload Text</button>
+      </form>
+      
+      <!-- File Upload Form -->
+      <div class="file-upload">
+        <h3>Upload File</h3>
+        <form id="fileUploadForm" enctype="multipart/form-data">
+          <input type="file" id="fileInput">
+          <button class="btn" type="submit">Upload File</button>
+        </form>
+      </div>
+    </div>
+    
+    <!-- Response Message -->
+    <div id="responseMessage"></div>
+    
+    <!-- Error Testing Section -->
+    <div class="error-section">
+      <h2>Error Testing</h2>
+      <p>Click the button below to see a 405 Method Not Allowed error:</p>
+      <button class="btn error-btn" onclick="showError405()">Show 405 Error</button>
+      <p id="errorInfo" style="display: none;">Loading 405 error page...</p>
+    </div>
+    
+    <!-- Error frame to display the error page -->
+    <iframe id="errorFrame" class="error-frame" frameborder="0"></iframe>
+  </div>
+  
+  <script>
+    // Show response message with optional styling
+    function showResponse(message, isError = false) {
+      const responseElement = document.getElementById('responseMessage');
+      responseElement.innerText = message;
+      responseElement.style.display = 'block';
+      responseElement.style.backgroundColor = isError ? '#ffebee' : '#e8f5e9';
+      responseElement.style.color = isError ? '#b71c1c' : '#00796B';
+      
+      // Auto-hide after 5 seconds
+      setTimeout(() => {
+        responseElement.style.display = 'none';
+      }, 5000);
+    }
+    
+    // Text upload form handler
+    document.getElementById('uploadForm').addEventListener('submit', function(event) {
+      event.preventDefault(); // Prevent page reload
+      const data = document.getElementById('postData').value;
+      if (!data.trim()) {
+        showResponse("Please enter some text to upload", true);
+        return;
+      }
+      
+      fetch('/uploads', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: data
+      })
+      .then(response => response.text())
+      .then(text => {
+        showResponse("Text uploaded successfully: " + text);
+        document.getElementById('postData').value = '';
+      })
+      .catch(error => {
+        showResponse("Error uploading text: " + error, true);
+        console.error('Error:', error);
+      });
+    });
+    
+    // File upload form handler
+    document.getElementById('fileUploadForm').addEventListener('submit', function(event) {
+      event.preventDefault(); // Prevent page reload
+      const fileInput = document.getElementById('fileInput');
+      
+      if (fileInput.files.length === 0) {
+        showResponse("Please select a file to upload", true);
+        return;
+      }
+      
+      const formData = new FormData();
+      formData.append('file', fileInput.files[0]);
+      
+      fetch('/uploads', {
+        method: 'POST',
+        body: formData
+      })
+      .then(response => response.text())
+      .then(text => {
+        showResponse("File uploaded successfully: " + text);
+        fileInput.value = ''; // Reset file input
+      })
+      .catch(error => {
+        showResponse("Error uploading file: " + error, true);
+        console.error('Error:', error);
+      });
+    });
+    
+    function sendGetRequest() {
+      fetch('/uploads')
+        .then(response => response.text())
+        .then(data => alert("GET Response: " + data))
+        .catch(error => console.error('Error:', error));
+    }
+    
+    function sendPostRequest() {
+      fetch('/uploads', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: "Testing POST request!"
+      })
+      .then(response => response.text())
+      .then(text => alert("POST Response: " + text))
+      .catch(error => console.error('Error:', error));
+    }
+    
+    function showError405() {
+      const errorInfo = document.getElementById('errorInfo');
+      const errorFrame = document.getElementById('errorFrame');
+      
+      // Show loading message
+      errorInfo.style.display = 'block';
+      
+      // Option 1: Open in a new tab/window
+      window.open('error_405.html', '_blank');
+      
+      // Option 2: Display in iframe (if the server supports iframes for error pages)
+      // Create a hidden form that will submit with FOO method
+      const form = document.createElement('form');
+      form.method = 'FOO';  // This won't actually work as intended in HTML, but we'll use it
+      form.action = '/index.html';
+      form.target = 'errorFrame';
+      document.body.appendChild(form);
+      
+      // Display the iframe
+      errorFrame.style.display = 'block';
+      
+      // Submit the form to trigger the error
+      try {
+        form.submit();  // This might not actually use the FOO method due to browser limitations
+      } catch (e) {
+        console.error('Form submission error:', e);
+      }
+      
+      // Remove the form
+      document.body.removeChild(form);
+      
+      // Update message
+      errorInfo.innerHTML = 'Attempting to show 405 error page. If not visible, <a href="error_405.html" target="_blank">click here</a> to open directly.';
+    }
+  </script>
 </body>
 </html>

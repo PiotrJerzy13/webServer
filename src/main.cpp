@@ -6,7 +6,7 @@
 /*   By: piotr <piotr@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/03/05 15:57:27 by piotr             #+#    #+#             */
-/*   Updated: 2025/03/05 15:57:31 by piotr            ###   ########.fr       */
+/*   Updated: 2025/03/05 21:24:59 by piotr            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,6 +15,7 @@
 #include "utils.hpp"
 #include <thread>
 #include <vector>
+#include <memory>
 
 int main(int argc, char** argv)
 {
@@ -40,24 +41,26 @@ int main(int argc, char** argv)
     file.close();
 
     std::vector<std::thread> threads;
+
     for (size_t j = 0; j < parser.size(); j++)
     {
         try
         {
             parser[j].parse(parser[j]._mainString);
-            webServer server(parser[j]._parsingServer, parser[j]._parsingLocation);
-
-            threads.push_back(std::thread([server]() mutable
-			{
-                server.start();
+            std::shared_ptr<webServer> server = std::make_shared<webServer>(
+                parser[j]._parsingServer, parser[j]._parsingLocation);
+                
+            threads.push_back(std::thread([server]()
+            {
+                server->start();
             }));
         }
-        catch(const std::exception& e)
+        catch (const std::exception& e)
         {
-            std::cerr << e.what() << '\n';
+            std::cerr << "Error starting server: " << e.what() << '\n';
         }
     }
-    for(auto &t : threads)
+    for (auto &t : threads)
     {
         if (t.joinable())
             t.join();

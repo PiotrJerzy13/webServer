@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   utils.cpp                                          :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: eleni <eleni@student.42.fr>                +#+  +:+       +#+        */
+/*   By: piotr <piotr@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/20 13:20:02 by eleni             #+#    #+#             */
-/*   Updated: 2025/02/20 13:32:54 by eleni            ###   ########.fr       */
+/*   Updated: 2025/03/05 20:11:41 by piotr            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,7 +15,6 @@
 std::vector<parseConfig> splitServers(std::ifstream& file)
 {
 	std::string line;
-	std::string temp;
 	std::vector<parseConfig> parser;
 	int i = -1;
 	int brackets = 1;
@@ -62,15 +61,15 @@ std::vector<parseConfig> splitServers(std::ifstream& file)
 	return parser;
 }
 
-void printParsingLocation(const std::unordered_multimap<std::string, std::vector<std::string>>& parsingLocation) 
-{
-    for (const auto& pair : parsingLocation) 
-	{
-        std::cout << "Location: " << pair.first << std::endl;
+// void printParsingLocation(const std::unordered_multimap<std::string, std::vector<std::string>>& parsingLocation) 
+// {
+//     for (const auto& pair : parsingLocation) 
+// 	{
+//         std::cout << "Location: " << pair.first << std::endl;
 
-        for (const auto& value : pair.second) 
-		{
-            std::cout << "  - " << value << std::endl;
-        }
-    }
-}
+//         for (const auto& value : pair.second) 
+// 		{
+//             std::cout << "  - " << value << std::endl;
+//         }
+//     }
+// }

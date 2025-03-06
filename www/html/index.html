@@ -342,8 +342,7 @@
   <div class="container">
     <h1>* Web Serpents *</h1>
     <div class="buttons">
-      <button class="btn" onclick="sendGetRequest()">GET</button>
-      <button class="btn" onclick="sendPostRequest()">POST</button>
+      <button class="btn" onclick="sendGetRequest(); window.location.href='get_index.html'">GET</button>
       <button class="btn">CGI</button>
       <button class="btn" onclick="window.location.href='https://www.google.com'">REDIRECT</button>
     </div>
@@ -354,7 +353,9 @@
       <!-- Text Upload Form -->
       <form class="upload-form" id="uploadForm">
         <input type="text" id="postData" placeholder="Enter text to upload">
-        <button type="submit">Upload Text</button>
+      <button class="btn" onclick="sendPostRequest()">POST</button>
+	  <!-- <button type="submit">POST</button> -->
+
       </form>
       
       <!-- File Upload Form -->
@@ -451,18 +452,19 @@
     });
     
     function sendGetRequest() {
-      fetch('/uploads')
+      fetch('/images')
         .then(response => response.text())
         .then(data => alert("GET Response: " + data))
         .catch(error => console.error('Error:', error));
     }
     
     function sendPostRequest() {
-      fetch('/uploads', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: "Testing POST request!"
-      })
+      fetch('/uploads')
+	//   , {
+    //     method: 'POST',
+    //     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    //     body: "Testing POST request!"
+    //   })
       .then(response => response.text())
       .then(text => alert("POST Response: " + text))
       .catch(error => console.error('Error:', error));

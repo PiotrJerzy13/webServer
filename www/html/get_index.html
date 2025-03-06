@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Πλοήγηση Εικόνων</title>
+    <style>
+        body {
+            text-align: center;
+            font-family: Arial, sans-serif;
+        }
+        img {
+            width: auto;
+			max-height: 500px;
+            height: 500px;
+            margin: 20px;
+			object-fit: cover;
+        }
+        .buttons {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <button onclick="window.history.back()">🔙 Back</button>
+
+    <div>
+        <button onclick="prevImage()">⬅️ Previous</button>
+        <img id="image" src="images/image1.webp" alt="Image">
+        <button onclick="nextImage()">➡️ Next</button>
+    </div>
+
+    <script>
+        const images = ["images/image1.webp", "images/image2.webp", "images/image3.webp", "images/image4.webp"];
+        let index = 0;
+        
+        function prevImage() {
+            index = (index - 1 + images.length) % images.length;
+			console.log('Previous image:', images[index]);
+            document.getElementById("image").src = images[index];
+        }
+
+        function nextImage() {
+            index = (index + 1) % images.length;
+			console.log('Next image:', images[index]);
+            document.getElementById("image").src = images[index];
+        }
+    </script>
+
+</body>
+</html>

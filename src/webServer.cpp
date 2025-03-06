@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   webServer.cpp                                      :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: piotr <piotr@student.42.fr>                +#+  +:+       +#+        */
+/*   By: eleni <eleni@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/16 21:12:30 by anamieta          #+#    #+#             */
-/*   Updated: 2025/03/05 21:30:31 by piotr            ###   ########.fr       */
+/*   Updated: 2025/03/06 19:18:45 by eleni            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -45,63 +45,64 @@ webServer::webServer(const std::unordered_multimap<std::string, std::string>& se
     const std::unordered_multimap<std::string, std::vector<std::string>>& locationConfig)
 : _serverConfig(serverConfig), _locationConfig(locationConfig)
 {
-std::cout << "[INFO] Initializing web server..." << std::endl;
+	std::cout << "[INFO] Initializing web server..." << std::endl;
 
-for (const auto& entry : _serverConfig)
-{
-if (entry.first == "listen")
-{
-int port = std::stoi(entry.second);
+	for (const auto& entry : _serverConfig)
+	{
+		if (entry.first == "listen")
+		{
+			int port = std::stoi(entry.second);
 
-if (auto portStatus = isPortAvailable(port); portStatus.has_value())
-{
-    std::cerr << "Error: Port " << port << " is already in use. Details: " << *portStatus << std::endl;
-    continue;
-}
+			if (auto portStatus = isPortAvailable(port); portStatus.has_value())
+			{
+				std::cerr << "Error: Port " << port << " is already in use. Details: " << *portStatus << std::endl;
+				continue;
+			}
 
-try {
-Socket serverSocket(AF_INET, SOCK_STREAM, 0);
-setNonBlocking(serverSocket.getFd());
+			try 
+			{
+				Socket serverSocket(AF_INET, SOCK_STREAM, 0);
+				setNonBlocking(serverSocket.getFd());
 
-sockaddr_in serverAddr;
-memset(&serverAddr, 0, sizeof(serverAddr));
-serverAddr.sin_family = AF_INET;
-serverAddr.sin_addr.s_addr = INADDR_ANY;
-serverAddr.sin_port = htons(port);
+				sockaddr_in serverAddr;
+				memset(&serverAddr, 0, sizeof(serverAddr));
+				serverAddr.sin_family = AF_INET;
+				serverAddr.sin_addr.s_addr = INADDR_ANY; // this needs to be pulled from the config also
+				serverAddr.sin_port = htons(port);
 
-if (bind(serverSocket.getFd(), (struct sockaddr*)&serverAddr, sizeof(serverAddr)) < 0)
-{
-   std::cerr << "Error: Could not bind socket for port " << port << std::endl;
-   continue;
-}
+				if (bind(serverSocket.getFd(), (struct sockaddr*)&serverAddr, sizeof(serverAddr)) < 0)
+				{
+				std::cerr << "Error: Could not bind socket for port " << port << std::endl;
+				continue;
+				}
 
-if (listen(serverSocket.getFd(), 10) < 0)
-{
-   std::cerr << "Error: Could not listen on socket for port " << port << std::endl;
-   continue;
-}
+				if (listen(serverSocket.getFd(), 10) < 0)
+				{
+				std::cerr << "Error: Could not listen on socket for port " << port << std::endl;
+				continue;
+				}
 
-_serverSockets.push_back(std::move(serverSocket));
+				_serverSockets.push_back(std::move(serverSocket));
 
-struct pollfd pfd;
-pfd.fd = _serverSockets.back().getFd();
-pfd.events = POLLIN;
-pfd.revents = 0;
-_pollfds.push_back(pfd);
-}
-catch (const std::runtime_error& e)
-{
-std::cerr << "Error: " << e.what() << std::endl;
-continue;
-}
-}
-}
+				struct pollfd pfd;
+				pfd.fd = _serverSockets.back().getFd();
+				pfd.events = POLLIN;
+				pfd.revents = 0;
+				_pollfds.push_back(pfd);
+			}
+			catch (const std::runtime_error& e)
+			{
+				std::cerr << "Error: " << e.what() << std::endl;
+				continue;
+			}
+		}
+	}
 
-if (_serverSockets.empty())
-{
-std::cerr << "Error: No valid server sockets created" << std::endl;
-throw std::runtime_error("No valid server sockets created");
-}
+	if (_serverSockets.empty())
+	{
+		std::cerr << "Error: No valid server sockets created" << std::endl;
+		throw std::runtime_error("No valid server sockets created");
+	}
 }
 
 void webServer::setNonBlocking(int socket)
@@ -147,7 +148,6 @@ void webServer::start()
                 }
                 else
                 {
-
                     processRead(_pollfds[i].fd);
                 }
             }
@@ -490,6 +490,7 @@ std::string webServer::generatePostResponse(const std::string& requestBody, cons
         }
 
         std::string filePath = uploadDir + "/" + filename;
+
         size_t contentStart = requestBody.find("\r\n\r\n");
         if (contentStart != std::string::npos)
         {
@@ -539,11 +540,13 @@ std::string webServer::generatePostResponse(const std::string& requestBody, cons
 
 std::string webServer::getCurrentTimeString()
 {
-    auto now = std::chrono::system_clock::now();
-    auto now_time_t = std::chrono::system_clock::to_time_t(now);
-    std::stringstream ss;
-    ss << std::put_time(std::localtime(&now_time_t), "%Y%m%d_%H%M%S");
-    return ss.str();
+	_formNumber++;
+	return std::to_string(_formNumber);
+    // auto now = std::chrono::system_clock::now();
+    // auto now_time_t = std::chrono::system_clock::to_time_t(now);
+    // std::stringstream ss;
+    // ss << std::put_time(std::localtime(&now_time_t), "%Y%m%d_%H%M%S");
+    // return ss.str();
 }
 
 std::string webServer::generateDeleteResponse(const std::string& filePath)

@@ -6,7 +6,7 @@
 /*   By: eleni <eleni@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/16 21:12:30 by anamieta          #+#    #+#             */
-/*   Updated: 2025/03/06 19:18:45 by eleni            ###   ########.fr       */
+/*   Updated: 2025/03/06 20:01:35 by eleni            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -107,13 +107,13 @@ webServer::webServer(const std::unordered_multimap<std::string, std::string>& se
 
 void webServer::setNonBlocking(int socket)
 {
-    int flags = fcntl(socket, F_GETFL, 0);
-    if (flags == -1)
-    {
-        std::cerr << "Error: Could not get socket flags" << std::endl;
-        return;
-    }
-    if (fcntl(socket, F_SETFL, flags | O_NONBLOCK) == -1)
+    // int flags = fcntl(socket, F_GETFL, 0);
+    // if (flags == -1)
+    // {
+    //     std::cerr << "Error: Could not get socket flags" << std::endl;
+    //     return;
+    // }
+    if (fcntl(socket, F_SETFL, O_NONBLOCK) == -1)
     {
         std::cerr << "Error: Could not set socket to non-blocking" << std::endl;
     }

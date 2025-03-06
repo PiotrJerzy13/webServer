@@ -21,6 +21,7 @@ SRC = $(SRC_DIR)main.cpp \
 	  $(SRC_DIR)webServer.cpp \
 	  $(SRC_DIR)utils.cpp \
 	  $(SRC_DIR)security.cpp \
+	  $(SRC_DIR)socket.cpp \
 
 
 OBJ = $(addprefix $(OBJ_DIR), $(notdir $(SRC:.cpp=.o)))

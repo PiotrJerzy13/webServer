@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   webServer.hpp                                      :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: pwojnaro <pwojnaro@student.42.fr>          +#+  +:+       +#+        */
+/*   By: piotr <piotr@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/16 21:11:58 by anamieta          #+#    #+#             */
-/*   Updated: 2025/03/03 14:46:18 by pwojnaro         ###   ########.fr       */
+/*   Updated: 2025/03/05 21:24:10 by piotr            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -31,28 +31,42 @@
 #include <filesystem>
 #include <csignal>
 #include <sys/stat.h>
+#include "socket.hpp"
 
 class webServer {
     public:
         webServer(const std::unordered_multimap<std::string, std::string>& serverConfig,
-                    const std::unordered_multimap<std::string, std::vector<std::string>>& locationConfig);
+        const std::unordered_multimap<std::string, std::vector<std::string>>& locationConfig);
         void start();
     private:
-        void handleRequest(int clientSocket);
-        void sendResponse(int clientSocket, const std::string& response);
+    struct Connection
+    {
+        Socket socket;
+        std::string inputBuffer;
+        std::string outputBuffer;
+        bool requestComplete;
+    };
+        std::vector<Socket> _serverSockets;
+        std::unordered_map<int, Connection> _connections;
+        std::string handleRequest(const std::string& fullRequest);
+        void sendResponse(Socket& clientSocket, const std::string& response);
         void setNonBlocking(int socket);
-		void handleDeleteRequest(int clientSocket, const std::string& filePath);
-		void handlePostRequest(int clientSocket, const std::string& requestBody, const std::string& contentType);
-		void handleMethodNotAllowed(int clientSocket);
-		void processRequest(int clientSocket, const std::string& request);
+		std::string generateDeleteResponse(const std::string& filePath);
+		std::string generateMethodNotAllowedResponse();
+        void addConnection(int clientFd);
+        std::string processRequest(const std::string& request);
+        void processRead(int clientSocket);
+        void processWrite(int clientSocket);
+        void updatePollEvents(int fd, short newEvent);
+        void closeConnection(int fd);
+		std::string generatePostResponse(const std::string& requestBody, const std::string& contentType);
 		std::string sanitizePath(const std::string& path);
 		std::string sanitizeFilename(const std::string& filename);
 		std::string getContentType(const std::string& filePath);
-		void handleGetRequest(int clientSocket, const std::string& filePath);
+		std::string generateGetResponse(const std::string& filePath);
 		std::string getDefaultErrorPage(int errorCode, std::string& contentType);
         std::unordered_multimap<std::string, std::string> _serverConfig;
         std::unordered_multimap<std::string, std::vector<std::string>> _locationConfig;
-        std::vector<int> _serverSockets;
         std::vector<struct pollfd> _pollfds;
 		std::string getCurrentTimeString();
 		std::string getFilePath(const std::string& path);

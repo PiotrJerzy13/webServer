@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   webServer.cpp                                      :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: eleni <eleni@student.42.fr>                +#+  +:+       +#+        */
+/*   By: pwojnaro <pwojnaro@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/16 21:12:30 by anamieta          #+#    #+#             */
-/*   Updated: 2025/03/06 20:01:35 by eleni            ###   ########.fr       */
+/*   Updated: 2025/03/07 15:21:46 by pwojnaro         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -45,74 +45,68 @@ webServer::webServer(const std::unordered_multimap<std::string, std::string>& se
     const std::unordered_multimap<std::string, std::vector<std::string>>& locationConfig)
 : _serverConfig(serverConfig), _locationConfig(locationConfig)
 {
-	std::cout << "[INFO] Initializing web server..." << std::endl;
+std::cout << "[INFO] Initializing web server..." << std::endl;
 
-	for (const auto& entry : _serverConfig)
-	{
-		if (entry.first == "listen")
-		{
-			int port = std::stoi(entry.second);
+for (const auto& entry : _serverConfig)
+{
+if (entry.first == "listen")
+{
+int port = std::stoi(entry.second);
 
-			if (auto portStatus = isPortAvailable(port); portStatus.has_value())
-			{
-				std::cerr << "Error: Port " << port << " is already in use. Details: " << *portStatus << std::endl;
-				continue;
-			}
+if (auto portStatus = isPortAvailable(port); portStatus.has_value())
+{
+    std::cerr << "Error: Port " << port << " is already in use. Details: " << *portStatus << std::endl;
+    continue;
+}
 
-			try 
-			{
-				Socket serverSocket(AF_INET, SOCK_STREAM, 0);
-				setNonBlocking(serverSocket.getFd());
+try {
+Socket serverSocket(AF_INET, SOCK_STREAM, 0);
+setNonBlocking(serverSocket.getFd());
 
-				sockaddr_in serverAddr;
-				memset(&serverAddr, 0, sizeof(serverAddr));
-				serverAddr.sin_family = AF_INET;
-				serverAddr.sin_addr.s_addr = INADDR_ANY; // this needs to be pulled from the config also
-				serverAddr.sin_port = htons(port);
+sockaddr_in serverAddr;
+memset(&serverAddr, 0, sizeof(serverAddr));
+serverAddr.sin_family = AF_INET;
+serverAddr.sin_addr.s_addr = INADDR_ANY;
+serverAddr.sin_port = htons(port);
 
-				if (bind(serverSocket.getFd(), (struct sockaddr*)&serverAddr, sizeof(serverAddr)) < 0)
-				{
-				std::cerr << "Error: Could not bind socket for port " << port << std::endl;
-				continue;
-				}
+if (bind(serverSocket.getFd(), (struct sockaddr*)&serverAddr, sizeof(serverAddr)) < 0)
+{
+   std::cerr << "Error: Could not bind socket for port " << port << std::endl;
+   continue;
+}
 
-				if (listen(serverSocket.getFd(), 10) < 0)
-				{
-				std::cerr << "Error: Could not listen on socket for port " << port << std::endl;
-				continue;
-				}
+if (listen(serverSocket.getFd(), 10) < 0)
+{
+   std::cerr << "Error: Could not listen on socket for port " << port << std::endl;
+   continue;
+}
 
-				_serverSockets.push_back(std::move(serverSocket));
+_serverSockets.push_back(std::move(serverSocket));
 
-				struct pollfd pfd;
-				pfd.fd = _serverSockets.back().getFd();
-				pfd.events = POLLIN;
-				pfd.revents = 0;
-				_pollfds.push_back(pfd);
-			}
-			catch (const std::runtime_error& e)
-			{
-				std::cerr << "Error: " << e.what() << std::endl;
-				continue;
-			}
-		}
-	}
+struct pollfd pfd;
+pfd.fd = _serverSockets.back().getFd();
+pfd.events = POLLIN;
+pfd.revents = 0;
+_pollfds.push_back(pfd);
+}
+catch (const std::runtime_error& e)
+{
+std::cerr << "Error: " << e.what() << std::endl;
+continue;
+}
+}
+}
 
-	if (_serverSockets.empty())
-	{
-		std::cerr << "Error: No valid server sockets created" << std::endl;
-		throw std::runtime_error("No valid server sockets created");
-	}
+if (_serverSockets.empty())
+{
+std::cerr << "Error: No valid server sockets created" << std::endl;
+throw std::runtime_error("No valid server sockets created");
+}
 }
 
 void webServer::setNonBlocking(int socket)
 {
-    // int flags = fcntl(socket, F_GETFL, 0);
-    // if (flags == -1)
-    // {
-    //     std::cerr << "Error: Could not get socket flags" << std::endl;
-    //     return;
-    // }
+    // Set the socket to non-blocking mode using F_SETFL and O_NONBLOCK
     if (fcntl(socket, F_SETFL, O_NONBLOCK) == -1)
     {
         std::cerr << "Error: Could not set socket to non-blocking" << std::endl;
@@ -181,7 +175,9 @@ void webServer::processRead(int clientSocket)
 {
     char buffer[1024];
     ssize_t bytesRead = read(clientSocket, buffer, sizeof(buffer));
-    if (bytesRead > 0) {
+
+    if (bytesRead > 0)
+    {
         _connections[clientSocket].inputBuffer.append(buffer, bytesRead);
         if (_connections[clientSocket].inputBuffer.find("\r\n\r\n") != std::string::npos)
         {
@@ -190,7 +186,7 @@ void webServer::processRead(int clientSocket)
             updatePollEvents(clientSocket, POLLOUT);
         }
     }
-    else
+    else if (bytesRead <= 0) // Handle errors and EOF
     {
         closeConnection(clientSocket);
     }
@@ -199,13 +195,21 @@ void webServer::processRead(int clientSocket)
 void webServer::processWrite(int clientSocket)
 {
     Connection &conn = _connections[clientSocket];
-    if (!conn.outputBuffer.empty()) {
+    if (!conn.outputBuffer.empty())
+    {
         ssize_t bytesWritten = write(conn.socket.getFd(), conn.outputBuffer.c_str(), conn.outputBuffer.size());
-        if (bytesWritten > 0) {
+
+        if (bytesWritten > 0)
+        {
             conn.outputBuffer.erase(0, bytesWritten);
-            if (conn.outputBuffer.empty()) {
+            if (conn.outputBuffer.empty())
+            {
                 closeConnection(clientSocket);
             }
+        }
+        else
+        {
+            closeConnection(clientSocket);
         }
     }
 }
@@ -271,18 +275,35 @@ std::string webServer::handleRequest(const std::string& fullRequest)
             requestBody = fullRequest.substr(headerEnd + 4);
         }
     }
+
     path = sanitizePath(path);
     if (path.empty() || path[0] != '/')
     {
         return "HTTP/1.1 400 Bad Request\r\nContent-Type: text/plain\r\n\r\nInvalid path";
     }
+
     std::string rootDir = "./www";
     auto it = _serverConfig.find("root");
     if (it != _serverConfig.end())
     {
         rootDir = it->second;
     }
-    
+
+    if (path.find("/cgi-bin/") == 0)
+    {
+        std::string scriptPath = rootDir + path;
+        std::string queryString;
+
+        size_t queryPos = path.find('?');
+        if (queryPos != std::string::npos)
+        {
+            queryString = path.substr(queryPos + 1);
+            path = path.substr(0, queryPos);
+        }
+
+        return executeCGI(scriptPath, method, queryString, requestBody);
+    }
+
     if (path.back() == '/')
     {
         path += "index.html";
@@ -297,6 +318,7 @@ std::string webServer::handleRequest(const std::string& fullRequest)
     {
         contentType = ctIt->second;
     }
+
     if (method == "GET")
     {
         return generateGetResponse(filePath);
@@ -685,4 +707,107 @@ std::string webServer::getFilePath(const std::string& path)
         return basePath + "/index.html";
     }
     return basePath + path;
+}
+
+std::string webServer::executeCGI(const std::string& scriptPath, const std::string& method, const std::string& queryString, const std::string& requestBody)
+{
+    // Remove query string from the script path
+    std::string cleanScriptPath = scriptPath;
+    size_t queryPos = cleanScriptPath.find('?');
+    if (queryPos != std::string::npos) {
+        cleanScriptPath = cleanScriptPath.substr(0, queryPos);
+    }
+
+    int pipeToChild[2];  // Parent writes to child (POST data)
+    int pipeFromChild[2]; // Parent reads from child (CGI output)
+
+    if (pipe(pipeToChild) == -1 || pipe(pipeFromChild) == -1)
+	{
+        return "HTTP/1.1 500 Internal Server Error\r\nContent-Type: text/plain\r\n\r\nFailed to create pipes";
+    }
+
+    pid_t pid = fork();
+    if (pid == -1)
+	{
+        return "HTTP/1.1 500 Internal Server Error\r\nContent-Type: text/plain\r\n\r\nFailed to fork";
+    }
+
+    if (pid == 0)
+	{
+        close(pipeToChild[1]); // Close write end of pipeToChild
+        close(pipeFromChild[0]); // Close read end of pipeFromChild
+
+        // Redirect stdin and stdout
+        if (dup2(pipeToChild[0], STDIN_FILENO) == -1 || dup2(pipeFromChild[1], STDOUT_FILENO) == -1) {
+            std::cerr << "Failed to redirect stdin/stdout" << std::endl;
+            exit(1);
+        }
+
+        // Set environment variables
+        setenv("REQUEST_METHOD", method.c_str(), 1);
+        setenv("QUERY_STRING", queryString.c_str(), 1);
+        setenv("CONTENT_LENGTH", std::to_string(requestBody.size()).c_str(), 1);
+        setenv("CONTENT_TYPE", "application/x-www-form-urlencoded", 1); // Adjust as needed
+        setenv("SCRIPT_NAME", cleanScriptPath.c_str(), 1);
+        setenv("PATH_INFO", "", 1); // Adjust if additional path info is present
+
+        // Execute the CGI script
+        execl(cleanScriptPath.c_str(), cleanScriptPath.c_str(), nullptr);
+
+        // If execl fails
+        std::cerr << "Failed to execute CGI script: " << cleanScriptPath << " (Error: " << strerror(errno) << ")" << std::endl;
+        exit(1);
+    } 
+	else
+	{ // Parent process (server)
+        close(pipeToChild[0]); // Close read end of pipeToChild
+        close(pipeFromChild[1]); // Close write end of pipeFromChild
+
+        // Write POST data to the CGI script (if any)
+        if (method == "POST" && !requestBody.empty()) {
+            write(pipeToChild[1], requestBody.c_str(), requestBody.size());
+        }
+        close(pipeToChild[1]);
+		
+        // Read the CGI output
+        std::string cgiOutput;
+        char buffer[4096];
+        fd_set readSet;
+        int maxFd = pipeFromChild[0];
+
+        while (true) {
+            FD_ZERO(&readSet);
+            FD_SET(pipeFromChild[0], &readSet);
+
+            int activity = select(maxFd + 1, &readSet, nullptr, nullptr, nullptr);
+            if (activity < 0) {
+                std::cerr << "select() error" << std::endl;
+                break;
+            }
+
+            if (FD_ISSET(pipeFromChild[0], &readSet)) {
+                ssize_t bytesRead = read(pipeFromChild[0], buffer, sizeof(buffer));
+                if (bytesRead > 0) {
+                    cgiOutput.append(buffer, bytesRead);
+                } else if (bytesRead == 0) {
+                    break; // EOF
+                } else {
+                    std::cerr << "read() error" << std::endl;
+                    break;
+                }
+            }
+        }
+
+        close(pipeFromChild[0]); // Close read end after reading
+
+        // Wait for the child process to finish
+        int status;
+        waitpid(pid, &status, 0);
+
+        if (WIFEXITED(status) && WEXITSTATUS(status) == 0) {
+            return cgiOutput; // Return the CGI output as the HTTP response
+        } else {
+            return "HTTP/1.1 500 Internal Server Error\r\nContent-Type: text/plain\r\n\r\nCGI script failed";
+        }
+    }
 }

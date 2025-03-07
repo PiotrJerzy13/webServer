@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   webServer.hpp                                      :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: eleni <eleni@student.42.fr>                +#+  +:+       +#+        */
+/*   By: pwojnaro <pwojnaro@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/16 21:11:58 by anamieta          #+#    #+#             */
-/*   Updated: 2025/03/06 19:15:31 by eleni            ###   ########.fr       */
+/*   Updated: 2025/03/07 14:36:42 by pwojnaro         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -46,6 +46,9 @@ class webServer {
         std::string inputBuffer;
         std::string outputBuffer;
         bool requestComplete;
+        int cgiPipeIn[2];
+        int cgiPipeOut[2];
+        pid_t cgiPid;
     };
         std::vector<Socket> _serverSockets;
         std::unordered_map<int, Connection> _connections;
@@ -71,4 +74,5 @@ class webServer {
         std::vector<struct pollfd> _pollfds;
 		std::string getCurrentTimeString();
 		std::string getFilePath(const std::string& path);
+		std::string executeCGI(const std::string& scriptPath, const std::string& method, const std::string& queryString, const std::string& requestBody);
 };

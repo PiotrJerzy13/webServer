@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   parseConfig.hpp                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: eleni <eleni@student.42.fr>                +#+  +:+       +#+        */
+/*   By: pwojnaro <pwojnaro@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/12 17:50:48 by eleni             #+#    #+#             */
-/*   Updated: 2025/02/19 17:45:59 by eleni            ###   ########.fr       */
+/*   Updated: 2025/03/10 19:25:53 by pwojnaro         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,6 +22,7 @@
 #include <string>
 #include <iostream>
 #include <fstream>
+#include <map>
 
 class parseConfig
 {
@@ -31,6 +32,9 @@ class parseConfig
 		std::unordered_multimap<std::string, std::string> _parsingServer;
 		std::unordered_multimap<std::string, std::vector<std::string>> _parsingLocation;
 		std::string _location;
+		std::map<std::string, bool> _autoindexConfig;
+		std::map<std::string, std::string> _redirections;
+		const std::map<std::string, std::string>& getRedirections() const;
 
 		void parse(const std::string& filename);
 
@@ -46,4 +50,6 @@ class parseConfig
 		std::string trimLocation(const std::string& line);
 		std::string trim(const std::string& line);
 		void fillLocationMap(std::string& line, const std::string& location);
+		const std::map<std::string, bool>& getAutoindexConfig() const;
+		
 };

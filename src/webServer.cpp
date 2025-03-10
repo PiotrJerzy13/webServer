@@ -6,7 +6,7 @@
 /*   By: pwojnaro <pwojnaro@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/16 21:12:30 by anamieta          #+#    #+#             */
-/*   Updated: 2025/03/09 17:10:36 by pwojnaro         ###   ########.fr       */
+/*   Updated: 2025/03/10 20:13:52 by pwojnaro         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,7 +15,9 @@
 #include "SocketManager.hpp"
 #include "HTTPRequest.hpp"
 #include "HTTPResponse.hpp"
+#include "parseConfig.hpp"
 #include <vector>
+#include <dirent.h>
 
 webServer::webServer(const std::unordered_multimap<std::string, std::string>& serverConfig,
 	const std::unordered_multimap<std::string, std::vector<std::string>>& locationConfig)
@@ -55,7 +57,8 @@ throw std::runtime_error("No valid server sockets created");
 void webServer::start()
 {
     std::cout << "[SUCCESS] Server started on configured ports!" << std::endl;
-    while (true) {
+    while (true)
+	{
         int pollCount = poll(_socketManager.getPollFds().data(), _socketManager.getPollFds().size(), 500);  // 500ms timeout
         if (pollCount < 0)
 		{
@@ -136,7 +139,7 @@ void webServer::processRead(int clientSocket)
         if (_connections[clientSocket].inputBuffer.find("\r\n\r\n") != std::string::npos)
         {
             std::string rawRequest = _connections[clientSocket].inputBuffer;
-            std::string responseStr = processRequest(rawRequest);
+            std::string responseStr = handleRequest(rawRequest);
             _connections[clientSocket].outputBuffer = responseStr;
             updatePollEvents(clientSocket, POLLOUT);
         }
@@ -223,6 +226,7 @@ std::unordered_map<std::string, std::string> webServer::parseHeaders(std::istrin
     }
     return headerMap;
 }
+
 std::string webServer::resolveFilePath(const std::string& path, const std::string& rootDir)
 {
     std::string resolvedPath = sanitizePath(path);
@@ -230,15 +234,9 @@ std::string webServer::resolveFilePath(const std::string& path, const std::strin
     {
         return "";
     }
-
     if (resolvedPath.find("/cgi-bin/") == 0)
     {
         return rootDir + resolvedPath;
-    }
-
-    if (resolvedPath.back() == '/')
-    {
-        resolvedPath += "index.html";
     }
     return rootDir + resolvedPath;
 }
@@ -261,6 +259,27 @@ std::string webServer::getStatusMessage(int statusCode)
     }
 }
 
+std::string urlDecode(const std::string& encoded) {
+    std::string result;
+    for (size_t i = 0; i < encoded.length(); ++i) {
+        if (encoded[i] == '%' && i + 2 < encoded.length()) {
+            int value;
+            std::istringstream is(encoded.substr(i + 1, 2));
+            if (is >> std::hex >> value) {
+                result += static_cast<char>(value);
+                i += 2;
+            } else {
+                result += encoded[i];
+            }
+        } else if (encoded[i] == '+') {
+            result += ' ';
+        } else {
+            result += encoded[i];
+        }
+    }
+    return result;
+}
+
 std::string webServer::handleRequest(const std::string& fullRequest)
 {
     if (fullRequest.empty())
@@ -269,32 +288,168 @@ std::string webServer::handleRequest(const std::string& fullRequest)
     HTTPRequest httpRequest(fullRequest);
     std::string method = httpRequest.getMethod();
     std::string path = httpRequest.getPath();
+    std::string decodedPath = urlDecode(path);
+
+    // Debug: Print the request path
+    std::cout << "[DEBUG] Request Path: " << path << "\n";
+    std::cout << "[DEBUG] Decoded Path: " << decodedPath << "\n";
+
+    // Debug: Show configured redirections
+    std::cout << "[DEBUG] Checking against configured redirections:\n";
+    for (const auto& [location, redirection] : _redirections) {
+        std::cout << "  - Location: '" << location << "', Redirection: '" << redirection << "'\n";
+    }
+
+    // Special case: Handle paths that start with redirection codes (301, 302, etc.)
+	if (decodedPath.size() > 4 && 
+    (decodedPath.substr(0, 4) == "/301" || decodedPath.substr(0, 4) == "/302")) {
+    
+    // Extract the URL part after the status code and any whitespace
+    size_t urlStart = decodedPath.find_first_not_of(" \t", 4);
+    if (urlStart != std::string::npos) {
+        // Use this as the target URL for redirection
+        std::string targetUrl = decodedPath.substr(urlStart);
+        
+        // Ensure the target URL is absolute
+        if (targetUrl.find("http://") != 0 && targetUrl.find("https://") != 0) {
+            targetUrl = "http://" + targetUrl;
+        }
+        
+        // Get the status code from the path
+        std::string statusCode = decodedPath.substr(1, 3);
+        
+        // Generate redirection response
+        std::stringstream response;
+        response << "HTTP/1.1 " << statusCode << " Moved\r\n";
+        response << "Location: " << targetUrl << "\r\n";
+        response << "Content-Length: 0\r\n";
+        response << "\r\n";
+        return response.str();
+    }
+}
+
+    for (const auto& [location, redirection] : _redirections)
+    {
+        // Check both the original and decoded path
+        if (path.find(location) == 0 || decodedPath.find(location) == 0)
+        {
+            std::cout << "[DEBUG] Redirection match found for location: " << location << "\n";
+            
+            // Split the redirection into status code and target URL
+            size_t spacePos = redirection.find_first_of(" \t");
+            if (spacePos != std::string::npos)
+            {
+                std::string statusCode = redirection.substr(0, spacePos);
+                std::string targetUrl = redirection.substr(spacePos + 1);
+
+                // Ensure the target URL is absolute
+                if (targetUrl.find("http://") != 0 && targetUrl.find("https://") != 0) {
+                    targetUrl = "http://" + targetUrl; // Default to HTTP if no scheme is provided
+                }
+
+                // Generate the redirect response
+                std::cout << "[DEBUG] Generating redirect: " << statusCode << " to " << targetUrl << "\n";
+                std::stringstream response;
+                response << "HTTP/1.1 " << statusCode << " Moved\r\n";
+                response << "Location: " << targetUrl << "\r\n";
+                response << "Content-Length: 0\r\n";
+                response << "\r\n";
+                return response.str();
+            }
+            else
+            {
+                std::cerr << "[ERROR] Invalid redirection format: " << redirection << std::endl;
+            }
+        }
+    }
 
     if (path.find("/cgi-bin/") == 0)
     {
         std::string rootDir = "./www/html";
         std::string queryString;
         size_t queryPos = path.find('?');
-        
         if (queryPos != std::string::npos)
         {
             queryString = path.substr(queryPos + 1);
             path = path.substr(0, queryPos);
         }
-        
         std::string scriptPath = rootDir + path;
         return executeCGI(scriptPath, method, queryString, httpRequest.getBody());
     }
 
+    // Determine the root directory from config (default "./www")
     std::string rootDir = "./www";
     auto it = _serverConfig.find("root");
     if (it != _serverConfig.end())
         rootDir = it->second;
 
+    // Resolve the file path for the requested resource.
     std::string filePath = resolveFilePath(path, rootDir);
     if (filePath.empty())
         return generateErrorResponse(400, "Invalid path");
-        
+
+    // Debug: Print the resolved file path
+    std::cout << "[DEBUG] Resolved File Path: " << filePath << "\n";
+
+    // Check if the resolved path is a directory
+    struct stat st;
+    if (stat(filePath.c_str(), &st) == 0 && S_ISDIR(st.st_mode))
+    {
+        // Debug: Print directory check result
+        std::cout << "[DEBUG] Path is a directory\n";
+
+        // Check if autoindex is enabled for this location
+        bool autoindexEnabled = false;
+        std::string matchedLocation = "";
+
+        // Debug: Print autoindex configuration
+        std::cout << "[DEBUG] Autoindex Configuration:\n";
+        for (const auto& [loc, enabled] : _autoindexConfig)
+        {
+            std::cout << "Location: " << loc << ", Autoindex: " << (enabled ? "on" : "off") << "\n";
+        }
+
+        // Iterate through the autoindex configuration to find the best match
+        for (const auto& locationPair : _autoindexConfig)
+        {
+            const std::string& loc = locationPair.first;
+            // Ensure the location is not empty and matches the start of the path
+            if (!loc.empty() && path.find(loc) == 0)
+            {
+                // If the current location is more specific than the previous match, update the match
+                if (loc.length() > matchedLocation.length())
+                {
+                    matchedLocation = loc;
+                    autoindexEnabled = locationPair.second;
+                }
+            }
+        }
+
+        // Debug: Print matched location and autoindex status
+        std::cout << "[DEBUG] Matched Location: " << matchedLocation << ", Autoindex: " << (autoindexEnabled ? "on" : "off") << "\n";
+
+        if (autoindexEnabled)
+        {
+            // Generate and return a directory listing.
+            return generateDirectoryListing(filePath, path);
+        }
+        else
+        {
+            // Attempt to serve the index.html file from the directory.
+            std::string indexPath = filePath;
+            if (indexPath.back() != '/')
+                indexPath += "/";
+            indexPath += "index.html";
+            if (access(indexPath.c_str(), F_OK) == 0)
+            {
+                return generateGetResponse(indexPath);
+            }
+            else
+            {
+                return generateErrorResponse(403, "Directory listing is disabled, and no index file found.");
+            }
+        }
+    }
     return processRequest(fullRequest);
 }
 
@@ -356,11 +511,11 @@ std::string webServer::generateGetResponse(const std::string& filePath)
 
 std::string webServer::processRequest(const std::string& request)
 {
-    // Parse the raw request using HTTPRequest.
     HTTPRequest httpRequest(request);
     std::string method = httpRequest.getMethod();
     std::string path = httpRequest.getPath();
 
+    // Handle CGI requests first.
     if (path.find("/cgi-bin/") == 0)
     {
         std::string rootDir = "./www/html";
@@ -368,13 +523,15 @@ std::string webServer::processRequest(const std::string& request)
         std::string queryString;
         size_t queryPos = path.find('?');
         if (queryPos != std::string::npos)
-		{
+        {
             queryString = path.substr(queryPos + 1);
             path = path.substr(0, queryPos);
             scriptPath = rootDir + path;
         }
         return executeCGI(scriptPath, method, queryString, httpRequest.getBody());
     }
+
+    // Determine root directory from config.
     std::string rootDir = "./www";
     auto it = _serverConfig.find("root");
     if (it != _serverConfig.end())
@@ -382,12 +539,31 @@ std::string webServer::processRequest(const std::string& request)
         rootDir = it->second;
     }
 
+    // Resolve the file path.
     std::string filePath = resolveFilePath(path, rootDir);
     if (filePath.empty())
     {
         return generateErrorResponse(400, "Invalid path");
     }
 
+    // Check if filePath is a directory.
+    struct stat st;
+    if (stat(filePath.c_str(), &st) == 0 && S_ISDIR(st.st_mode))
+    {
+        // Try to serve index.html.
+        std::string indexPath = filePath;
+        if (indexPath.back() != '/')
+            indexPath += "/";
+        indexPath += "index.html";
+        if (access(indexPath.c_str(), F_OK) == 0)
+        {
+            return generateGetResponse(indexPath);
+        }
+        // Alternatively, you could call generateDirectoryListing() or return an error.
+        return generateErrorResponse(403, "Directory listing is disabled, and no index file found.");
+    }
+
+    // Otherwise, handle as a file request.
     std::string responseStr;
     if (method == "GET")
     {
@@ -411,6 +587,7 @@ std::string webServer::processRequest(const std::string& request)
 
     return responseStr;
 }
+
 
 std::string webServer::getCurrentTimeString()
 {
@@ -648,4 +825,48 @@ std::string webServer::executeCGI(const std::string& scriptPath, const std::stri
         return cgiOutput;
     }
     return generateErrorResponse(500, "CGI script failed");
+}
+std::string webServer::generateDirectoryListing(const std::string& directoryPath, const std::string& requestPath)
+{
+    DIR* dir = opendir(directoryPath.c_str());
+    if (!dir)
+    {
+        std::cerr << "[ERROR] Failed to open directory: " << directoryPath << "\n";
+        return generateErrorResponse(500, "Failed to open directory");
+    }
+
+    std::stringstream response;
+    response << "<html><head><title>Index of " << requestPath << "</title></head><body>";
+    response << "<h1>Index of " << requestPath << "</h1>";
+    response << "<ul>";
+
+    struct dirent* entry;
+    while ((entry = readdir(dir)) != nullptr)
+    {
+        std::string fileName = entry->d_name;
+        if (fileName == "." || fileName == "..")
+            continue;
+
+        response << "<li><a href=\"" << requestPath << "/" << fileName << "\">" << fileName << "</a></li>";
+    }
+
+    response << "</ul></body></html>";
+    closedir(dir);
+
+    std::stringstream httpResponse;
+    httpResponse << "HTTP/1.1 200 OK\r\n";
+    httpResponse << "Content-Type: text/html\r\n";
+    httpResponse << "Content-Length: " << response.str().size() << "\r\n";
+    httpResponse << "\r\n";
+    httpResponse << response.str();
+
+    return httpResponse.str();
+}
+void webServer::setAutoindexConfig(const std::map<std::string, bool>& autoindexConfig)
+{
+    _autoindexConfig = autoindexConfig;
+}
+void webServer::setRedirections(const std::map<std::string, std::string>& redirections)
+{
+    _redirections = redirections;
 }

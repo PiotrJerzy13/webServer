@@ -6,7 +6,7 @@
 /*   By: pwojnaro <pwojnaro@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/16 21:11:58 by anamieta          #+#    #+#             */
-/*   Updated: 2025/03/09 14:19:31 by pwojnaro         ###   ########.fr       */
+/*   Updated: 2025/03/10 19:18:31 by pwojnaro         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -34,11 +34,14 @@
 #include "socket.hpp"
 #include "SocketManager.hpp"
 #include "HTTPRequest.hpp"
+#include <map>
 
 class webServer {
     public:
         webServer(const std::unordered_multimap<std::string, std::string>& serverConfig,
         const std::unordered_multimap<std::string, std::vector<std::string>>& locationConfig);
+		void setAutoindexConfig(const std::map<std::string, bool>& autoindexConfig);
+		void setRedirections(const std::map<std::string, std::string>& redirections);
         void start();
 		int _formNumber = 0;
     private:
@@ -52,6 +55,8 @@ class webServer {
         int cgiPipeOut[2];
         pid_t cgiPid;
     };
+		std::map<std::string, bool> _autoindexConfig;
+		std::map<std::string, std::string> _redirections; 
 		std::unordered_multimap<std::string, std::string> _serverConfig;
 		std::unordered_multimap<std::string, std::vector<std::string>> _locationConfig;
 		SocketManager _socketManager; 
@@ -79,5 +84,6 @@ class webServer {
 		std::unordered_map<std::string, std::string> parseHeaders(std::istringstream& requestStream);
 		std::string resolveFilePath(const std::string& path, const std::string& rootDir);
 		std::pair<std::vector<char>, std::string> readFile(const std::string& filePath);
+		std::string generateDirectoryListing(const std::string& directoryPath, const std::string& requestPath);
 		std::string executeCGI(const std::string& scriptPath, const std::string& method, const std::string& queryString, const std::string& requestBody);
 };

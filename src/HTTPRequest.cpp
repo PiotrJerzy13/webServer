@@ -6,7 +6,7 @@
 /*   By: pwojnaro <pwojnaro@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/03/07 18:49:05 by pwojnaro          #+#    #+#             */
-/*   Updated: 2025/03/09 16:45:22 by pwojnaro         ###   ########.fr       */
+/*   Updated: 2025/03/12 15:31:47 by pwojnaro         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,46 +14,66 @@
 #include <iostream>
 #include <algorithm>
 
-HTTPRequest::HTTPRequest(const std::string& rawRequest)
+
+HTTPRequest::HTTPRequest(const std::string& rawRequest) 
 {
-    this->rawRequest = rawRequest; // Store the raw request
+    this->rawRequest = rawRequest;
     parseRequest(rawRequest);
 }
 
-/**
- * Parses a raw HTTP request string into its components:
- * - Request line (method, path, version)
- * - Headers (key-value pairs)
- * - Body (if present)
- * The >> operator is used to extract formatted input from a stream 
- * std::istringstream allows you to treat a string as an input stream.
- */
-void HTTPRequest::parseRequest(const std::string& rawRequest)
-{
+void HTTPRequest::parseRequest(const std::string& rawRequest) {
     std::istringstream requestStream(rawRequest);
     requestStream >> method >> path >> version;
 
     std::string line;
-    std::getline(requestStream, line);
+    std::getline(requestStream, line); // Skip the first line (already parsed)
 
-    while (std::getline(requestStream, line) && line != "\r") //In HTTP requests, "\r" is part of the line-ending sequence.
-	{
-        size_t colonPos = line.find(':'); // Looking for first ":" usualy at Host:
-        if (colonPos != std::string::npos) // Creates headers[key] = value stored in headers map
-		{
-            std::string key = line.substr(0, colonPos); // Extract the key (before the colon)
-            std::string value = line.substr(colonPos + 1);// Extract the value (after the colon)
-            value.erase(0, value.find_first_not_of(" \t"));// Trim leading whitespace
-            value.erase(value.find_last_not_of("\r\n") + 1);// Trim trailing whitespace
-            headers[key] = value; // Store the key-value pair in the headers map
+    // Parse headers until empty line (which marks end of headers)
+    while (std::getline(requestStream, line) && !line.empty()) {
+        // Remove trailing \r if present
+        if (!line.empty() && line[line.size() - 1] == '\r') {
+            line.erase(line.size() - 1);
+        }
+
+        // Skip empty lines
+        if (line.empty()) {
+            continue;
+        }
+
+        size_t colonPos = line.find(':');
+        if (colonPos != std::string::npos) {
+            std::string key = line.substr(0, colonPos);
+            std::string value = line.substr(colonPos + 1);
+            value.erase(0, value.find_first_not_of(" \t"));
+            headers[key] = value;
         }
     }
-	
+
+    // Extract body based on Content-Length
     size_t headerEnd = rawRequest.find("\r\n\r\n");
-    if (headerEnd != std::string::npos) //npos special constant defined in the std::string class. It represents a value that indicates "not found" or "no position."
+    if (headerEnd != std::string::npos) {
+        body = rawRequest.substr(headerEnd + 4); // Skip \r\n\r\n
+
+        // If Content-Length is present, ensure the body is the correct size
+        std::string contentLengthStr = getHeader("Content-Length");
+        if (!contentLengthStr.empty()) {
+            size_t contentLength = std::stoul(contentLengthStr);
+            if (body.size() > contentLength) {
+                body = body.substr(0, contentLength); // Truncate to Content-Length
+            } else if (body.size() < contentLength) {
+                std::cerr << "[ERROR] Incomplete body: Expected " << contentLength
+                          << " bytes, got " << body.size() << " bytes" << std::endl;
+                body.clear(); // Clear body if incomplete
+            }
+        }
+    } 
+	else 
 	{
-        body = rawRequest.substr(headerEnd + 4);
+        std::cout << "[DEBUG] No body found in request" << std::endl;
     }
+
+    std::cout << "[DEBUG] Extracted body size: " << body.size() << " bytes" << std::endl;
+    std::cout << "[DEBUG] Body: " << body << std::endl;
 }
 
 std::string HTTPRequest::getMethod() const

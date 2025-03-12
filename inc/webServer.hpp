@@ -6,7 +6,7 @@
 /*   By: pwojnaro <pwojnaro@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/16 21:11:58 by anamieta          #+#    #+#             */
-/*   Updated: 2025/03/10 19:18:31 by pwojnaro         ###   ########.fr       */
+/*   Updated: 2025/03/12 15:30:44 by pwojnaro         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -42,20 +42,29 @@ class webServer {
         const std::unordered_multimap<std::string, std::vector<std::string>>& locationConfig);
 		void setAutoindexConfig(const std::map<std::string, bool>& autoindexConfig);
 		void setRedirections(const std::map<std::string, std::string>& redirections);
+		void setServerNames(const std::map<std::string, std::string>& serverNames);
+		void setClientMaxBodySize(const std::string& serverName, size_t size);
+		size_t getClientMaxBodySize(const std::string& serverName) const;
         void start();
 		int _formNumber = 0;
+		std::string readFullRequest(int clientSocket);
+		
+		
     private:
-    struct Connection
-    {
-        Socket socket;
-        std::string inputBuffer;
-        std::string outputBuffer;
-        bool requestComplete;
-        int cgiPipeIn[2];
-        int cgiPipeOut[2];
-        pid_t cgiPid;
-    };
+	struct Connection
+	{
+		Socket socket;
+		std::string inputBuffer;
+		std::string outputBuffer;
+		bool requestComplete;
+		int cgiPipeIn[2];
+		int cgiPipeOut[2];
+		pid_t cgiPid;
+		std::string serverName;
+	};
+		std::map<std::string, size_t> _clientMaxBodySizes;
 		std::map<std::string, bool> _autoindexConfig;
+		std::map<std::string, std::string> _serverNames;
 		std::map<std::string, std::string> _redirections; 
 		std::unordered_multimap<std::string, std::string> _serverConfig;
 		std::unordered_multimap<std::string, std::vector<std::string>> _locationConfig;
@@ -65,13 +74,13 @@ class webServer {
         void sendResponse(Socket& clientSocket, const std::string& response);
 		std::string generateDeleteResponse(const std::string& filePath);
 		std::string generateMethodNotAllowedResponse();
-        void addConnection(int clientFd);
+        void addConnection(int clientFd, const std::string& serverName);
         std::string processRequest(const std::string& request);
         void processRead(int clientSocket);
         void processWrite(int clientSocket);
         void updatePollEvents(int fd, short newEvent);
         void closeConnection(int fd);
-		std::string generatePostResponse(const std::string& requestBody, const std::string& contentType);
+		std::string generatePostResponse(const std::string& requestBody, const std::string& contentType, const std::string& serverName);
 		std::string sanitizePath(const std::string& path);
 		std::string sanitizeFilename(const std::string& filename);
 		std::string generateGetResponse(const std::string& filePath);

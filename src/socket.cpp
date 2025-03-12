@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   socket.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: piotr <piotr@student.42.fr>                +#+  +:+       +#+        */
+/*   By: pwojnaro <pwojnaro@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/03/05 20:29:22 by piotr             #+#    #+#             */
-/*   Updated: 2025/03/05 21:23:22 by piotr            ###   ########.fr       */
+/*   Updated: 2025/03/12 15:34:06 by pwojnaro         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,8 +22,18 @@ Socket::Socket(int domain, int type, int protocol) : _fd(socket(domain, type, pr
     }
 }
 
-Socket::Socket(int fd) : _fd(fd) {
+Socket::Socket(int fd) : _fd(fd)
+{
     if (_fd < 0) {
+        throw std::runtime_error("Invalid file descriptor");
+    }
+}
+
+Socket::Socket(int fd, const std::string& serverName)
+    : _fd(fd), _serverName(serverName)
+{
+    if (_fd < 0)
+	{
         throw std::runtime_error("Invalid file descriptor");
     }
 }
@@ -58,4 +68,9 @@ Socket& Socket::operator=(Socket&& other) noexcept
 int Socket::getFd() const
 {
     return _fd;
+}
+
+std::string Socket::getServerName() const
+{
+    return _serverName;
 }

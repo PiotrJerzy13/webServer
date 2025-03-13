@@ -3,20 +3,22 @@
 /*                                                        :::      ::::::::   */
 /*   main.cpp                                           :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: pwojnaro <pwojnaro@student.42.fr>          +#+  +:+       +#+        */
+/*   By: eleni <eleni@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2025/02/12 14:42:10 by eleni             #+#    #+#             */
-/*   Updated: 2025/03/02 14:13:01 by pwojnaro         ###   ########.fr       */
+/*   Created: 2025/03/05 15:57:27 by piotr             #+#    #+#             */
+/*   Updated: 2025/03/13 10:25:45 by eleni            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "parseConfig.hpp"
 #include "webServer.hpp"
 #include "utils.hpp"
+#include <thread>
+#include <vector>
+#include <memory>
 
-// add killing ports in the signals
 
-int main(int argc, char** argv)
+int main(int argc, char** argv) 
 {
     std::string filename;
     if (argc > 2)
@@ -28,34 +30,70 @@ int main(int argc, char** argv)
         filename = "config/config1.config";
     else if (argc == 2)
         filename = argv[1];
-
+    
     std::ifstream file(filename);
     if (!file.is_open())
     {
         std::cerr << "Error: Could not open configuration file: " << filename << std::endl;
         return 1;
     }
-
-	std::vector<parseConfig> parser;
-	parser = splitServers(file);
-
+    
+    std::vector<parseConfig> parser = splitServers(file);
     file.close();
+    
+    std::vector<std::thread> threads;
+    
+    for (size_t j = 0; j < parser.size(); j++)
+    {
+        try
+        {
+            parser[j].parse(parser[j]._mainString);
+            
+            std::cout << "Autoindex Configuration for Server " << j << ":\n";
+            for (const auto& [location, autoindex] : parser[j]._autoindexConfig)
+            {
+                std::cout << "Location: " << location << ", Autoindex: " << (autoindex ? "on" : "off") << "\n";
+            }
 
-	for (size_t j = 0; j < parser.size(); j++)
-	{
-		try
-		{
-			parser[j].parse(parser[j]._mainString);
-    		webServer server(parser[j]._parsingServer, parser[j]._parsingLocation);
-		    server.start();
-		}
-		catch(const std::exception& e)
-		{
-			std::cerr << e.what() << '\n';
-		}
-		// std::cout << "Server " << 1 << " configuration:\n";
-		// std::cout << parser[1]._mainString << std::endl;
-	}
+            std::cout << "Redirections for Server " << j << ":\n";
+            for (const auto& [location, target] : parser[j].getRedirections())
+            {
+                std::cout << "Location: " << location << ", Target: " << target << "\n";
+            }
 
+            std::cout << "Server Names for Server " << j << ":\n";
+            for (const auto& [serverBlock, serverName] : parser[j].getServerNames())
+            {
+                std::cout << "Server Block: " << serverBlock << ", Server Name: " << serverName << "\n";
+            }
+            
+            std::shared_ptr<webServer> server = std::make_shared<webServer>(
+                parser[j]._parsingServer, parser[j]._parsingLocation);
+            
+            // Set the autoindex configuration before starting the server
+            server->setAutoindexConfig(parser[j]._autoindexConfig);
+
+            // Set the redirections before starting the server
+            server->setRedirections(parser[j].getRedirections());
+
+            // Set the server names before starting the server
+            server->setServerNames(parser[j].getServerNames());
+            
+            threads.push_back(std::thread([server]()
+            {
+                server->start();
+            }));
+        }
+        catch (const std::exception& e)
+        {
+            std::cerr << "Error starting server: " << e.what() << '\n';
+        }
+    }
+    
+    for (auto &t : threads)
+    {
+        if (t.joinable())
+            t.join();
+    }
     return 0;
 }

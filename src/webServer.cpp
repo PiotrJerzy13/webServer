@@ -6,7 +6,7 @@
 /*   By: piotr <piotr@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/16 21:12:30 by anamieta          #+#    #+#             */
-/*   Updated: 2025/03/13 15:15:06 by piotr            ###   ########.fr       */
+/*   Updated: 2025/03/13 20:39:08 by piotr            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,6 +16,7 @@
 #include "HTTPRequest.hpp"
 #include "HTTPResponse.hpp"
 #include "parseConfig.hpp"
+#include "FileUtilis.hpp"
 #include <vector>
 #include <dirent.h>
 
@@ -227,12 +228,13 @@ std::string webServer::generateErrorResponse(int statusCode, const std::string& 
     return response.str();
 }
 
-std::unordered_map<std::string, std::string> webServer::parseHeaders(std::istringstream& requestStream)
+std::unordered_map<std::string, std::string> webServer::parseHeaders(const std::string& headerSection)
 {
     std::unordered_map<std::string, std::string> headerMap;
+    std::istringstream stream(headerSection);
     std::string line;
 
-    while (std::getline(requestStream, line) && line != "\r")
+    while (std::getline(stream, line) && line != "\r")
     {
         size_t colonPos = line.find(':');
         if (colonPos != std::string::npos)
@@ -476,48 +478,11 @@ std::string webServer::handleRequest(const std::string& fullRequest) {
     return generateGetResponse(filePath);
 }
 
-std::pair<std::vector<char>, std::string> webServer::readFile(const std::string& filePath)
-{
-    struct stat fileStat;
-    if (stat(filePath.c_str(), &fileStat) == -1)
-	{
-        std::cout << "[INFO] File not found: " << filePath << std::endl;
-        return {{}, ""};
-    }
-
-    if (access(filePath.c_str(), R_OK) == -1)
-	{
-        std::cout << "[INFO] File not accessible: " << filePath << std::endl;
-        return {{}, ""};
-    }
-
-    std::ifstream file(filePath, std::ios::binary);
-    if (!file.is_open())
-	{
-        std::cout << "[ERROR] Failed to open file: " << filePath << std::endl;
-        return {{}, ""};
-    }
-
-    file.seekg(0, std::ios::end);
-    std::streamsize fileSize = file.tellg();
-    file.seekg(0, std::ios::beg);
-
-    std::vector<char> fileContent(fileSize);
-    if (!file.read(fileContent.data(), fileSize))
-	{
-        std::cout << "[ERROR] Failed to read file content: " << filePath << std::endl;
-        file.close();
-        return {{}, ""};
-    }
-    file.close();
-    return {fileContent, HTTPResponse::getContentType(filePath)};
-}
-
 std::string webServer::generateGetResponse(const std::string& filePath)
 {
     std::cout << "[INFO] Handling GET request for: " << filePath << std::endl;
 
-    auto [fileContent, contentType] = readFile(filePath);
+    auto [fileContent, contentType] = FileUtils::readFile(filePath);
     if (fileContent.empty())
     {
         auto [defaultContent, defaultContentType] = HTTPResponse::getDefaultErrorPage(404);
@@ -700,11 +665,7 @@ std::string webServer::generatePostResponse(const std::string& requestBody,
     }
     
     // Create upload directory if it doesn't exist
-    try {
-        std::cout << "[DEBUG] Creating upload directory: " << uploadDir << std::endl;
-        std::filesystem::create_directories(uploadDir);
-    } catch (const std::filesystem::filesystem_error& e) {
-        std::cerr << "[ERROR] Failed to create upload directory: " << e.what() << std::endl;
+    if (!FileUtils::createDirectoryIfNotExists(uploadDir)) {
         return generateErrorResponse(500, "Server configuration error");
     }
 
@@ -809,15 +770,10 @@ std::string webServer::generatePostResponse(const std::string& requestBody,
         std::string filePath = uploadDir + "/" + filename;
         std::cout << "[DEBUG] Saving file to: " << filePath << std::endl;
         
-        std::ofstream file(filePath, std::ios::binary);
-        if (!file)
-        {
-            std::cerr << "[ERROR] Failed to open file for writing: " << filePath << std::endl;
+        if (!FileUtils::writeFile(filePath, content)) {
             return generateErrorResponse(500, "Failed to save file");
         }
         
-        file.write(content.data(), content.size());
-        file.close();
         std::cout << "[POST] File saved: " << filename << std::endl;
         
         // Return success response
@@ -834,15 +790,10 @@ std::string webServer::generatePostResponse(const std::string& requestBody,
         
         std::cout << "[DEBUG] Saving form data to: " << filePath << std::endl;
         
-        std::ofstream file(filePath);
-        if (!file)
-        {
-            std::cerr << "[ERROR] Failed to open file for writing: " << filePath << std::endl;
+        if (!FileUtils::writeFile(filePath, requestBody)) {
             return generateErrorResponse(500, "Failed to save file");
         }
         
-        file << requestBody;
-        file.close();
         std::cout << "[POST] Form data saved: " << filename << std::endl;
         
         // Return success response
@@ -859,15 +810,10 @@ std::string webServer::generatePostResponse(const std::string& requestBody,
         
         std::cout << "[DEBUG] Saving text data to: " << filePath << std::endl;
         
-        std::ofstream file(filePath);
-        if (!file)
-        {
-            std::cerr << "[ERROR] Failed to open file for writing: " << filePath << std::endl;
+        if (!FileUtils::writeFile(filePath, requestBody)) {
             return generateErrorResponse(500, "Failed to save file");
         }
         
-        file << requestBody;
-        file.close();
         std::cout << "[POST] Text data saved: " << filename << std::endl;
         
         // Return success response
@@ -881,45 +827,18 @@ std::string webServer::generatePostResponse(const std::string& requestBody,
     }
 }
 
-
 std::string webServer::generateDeleteResponse(const std::string& filePath)
 {
-    std::string adjustedFilePath = filePath;
-    const std::string marker = "/upload/";
-    size_t pos = filePath.find(marker);
-    if (pos != std::string::npos)
-    {
-        adjustedFilePath = "./www/upload/" + filePath.substr(pos + marker.length());
-    }
+    std::string adjustedFilePath = FileUtils::resolveUploadPath(filePath);
     
-    if (!std::filesystem::exists(adjustedFilePath))
-    {
-        std::cerr << "[DELETE] File not found: " << adjustedFilePath << std::endl;
-        return generateErrorResponse(404, "File not found");
-    }
-
-    if (!std::filesystem::is_regular_file(adjustedFilePath))
-    {
-        return generateErrorResponse(403, "Cannot delete directories");
-    }
-    try
-    {
-        if (std::filesystem::remove(adjustedFilePath))
-        {
-            std::cout << "[DELETE] Successfully deleted file: " << adjustedFilePath << std::endl;
-            return "HTTP/1.1 204 No Content\r\n\r\n";
+    if (!FileUtils::deleteFile(adjustedFilePath)) {
+        if (!FileUtils::fileExists(adjustedFilePath)) {
+            return generateErrorResponse(404, "File not found");
         }
-        else
-        {
-            std::cerr << "[DELETE] Failed to delete file: " << adjustedFilePath << std::endl;
-            return generateErrorResponse(500, "Failed to delete file");
-        }
-    }
-    catch (const std::filesystem::filesystem_error& e)
-    {
-        std::cerr << "[DELETE] Filesystem error: " << e.what() << std::endl;
         return generateErrorResponse(500, "Failed to delete file");
     }
+    
+    return "HTTP/1.1 204 No Content\r\n\r\n";
 }
 
 void webServer::sendResponse(Socket& clientSocket, const std::string& response)
@@ -1109,6 +1028,19 @@ size_t webServer::getClientMaxBodySize(const std::string& serverName) const {
     return 10485760; // e.g., 10MB
 }
 
+size_t webServer::getContentLength(const std::unordered_map<std::string, std::string>& headers)
+{
+    auto it = headers.find("Content-Length");
+    if (it != headers.end()) {
+        try {
+            return std::stoul(it->second);
+        } catch (const std::exception& e) {
+            std::cerr << "[ERROR] Invalid Content-Length value: " << e.what() << std::endl;
+        }
+    }
+    return 0;
+}
+
 std::string webServer::readFullRequest(int clientSocket) {
     std::string request;
     char buffer[4096] = {0};
@@ -1122,27 +1054,24 @@ std::string webServer::readFullRequest(int clientSocket) {
         // Check for end of headers
         size_t headersEnd = request.find("\r\n\r\n");
         if (headersEnd != std::string::npos) {
-            // Handle "Expect: 100-continue" if present
-            if (request.find("Expect: 100-continue") != std::string::npos) {
-                const char* continueResponse = "HTTP/1.1 100 Continue\r\n\r\n";
-                send(clientSocket, continueResponse, strlen(continueResponse), 0);
-            }
             break;
         }
     }
 
-    size_t contentLength = 0;
-    size_t contentLengthPos = request.find("Content-Length:");
-    if (contentLengthPos != std::string::npos) {
-        size_t valueStart = contentLengthPos + 15; // Length of "Content-Length:"
-        size_t valueEnd = request.find("\r\n", valueStart);
-        if (valueEnd != std::string::npos) {
-            std::string lengthStr = request.substr(valueStart, valueEnd - valueStart);
-            lengthStr.erase(0, lengthStr.find_first_not_of(" \t"));
-            contentLength = std::stoul(lengthStr);
-        }
+    // Parse headers
+    std::string headerSection = request.substr(0, request.find("\r\n\r\n"));
+    auto headers = parseHeaders(headerSection);
+
+    // Handle "Expect: 100-continue" if present
+    auto expectIt = headers.find("Expect");
+    if (expectIt != headers.end() && expectIt->second == "100-continue") {
+        const char* continueResponse = "HTTP/1.1 100 Continue\r\n\r\n";
+        send(clientSocket, continueResponse, strlen(continueResponse), 0);
     }
 
+    // Get content length and read body if needed
+    size_t contentLength = getContentLength(headers);
+    
     // Read the body
     if (contentLength > 0) {
         size_t bodyBytesRead = request.size() - (request.find("\r\n\r\n") + 4);
@@ -1183,8 +1112,10 @@ std::string webServer::generateSuccessResponse(const std::string& message) {
     response << message;
     return response.str();
 }
-bool webServer::processMultipartPart(const std::string& part, const std::string& serverName) {
-    // Extract headers and content
+
+bool webServer::processMultipartPart(const std::string& part, const std::string& serverName) 
+{
+
     size_t headersEnd = part.find("\r\n\r\n");
     if (headersEnd == std::string::npos) {
         std::cerr << "[ERROR] Invalid multipart part: missing headers" << std::endl;
@@ -1204,7 +1135,6 @@ bool webServer::processMultipartPart(const std::string& part, const std::string&
             fieldName = headers.substr(namePos + 6, nameEnd - (namePos + 6));
         }
     }
-
     size_t filenamePos = headers.find("filename=\"");
     if (filenamePos != std::string::npos) {
         size_t filenameEnd = headers.find("\"", filenamePos + 10);
@@ -1217,19 +1147,18 @@ bool webServer::processMultipartPart(const std::string& part, const std::string&
     if (!filename.empty()) {
         // Use serverName to determine the upload directory
         std::string uploadDir = "./www/html/upload/" + serverName;
-        if (access(uploadDir.c_str(), F_OK) != 0) {
-            mkdir(uploadDir.c_str(), 0777); // Create the directory if it doesn't exist
-        }
-
-        std::string filePath = uploadDir + "/" + filename;
-        std::ofstream file(filePath, std::ios::binary);
-        if (!file.is_open()) {
-            std::cerr << "[ERROR] Failed to open file for writing: " << filePath << std::endl;
+        
+        // Create directory if it doesn't exist
+        if (!FileUtils::createDirectoryIfNotExists(uploadDir)) {
             return false;
         }
 
-        file.write(content.c_str(), content.size());
-        file.close();
+        std::string filePath = uploadDir + "/" + filename;
+        
+        if (!FileUtils::writeFile(filePath, content)) {
+            return false;
+        }
+        
         std::cout << "[INFO] File uploaded to server '" << serverName << "': " << filePath << std::endl;
     } else if (!fieldName.empty()) {
         // Handle form fields (if needed)

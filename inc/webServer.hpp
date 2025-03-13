@@ -6,7 +6,7 @@
 /*   By: piotr <piotr@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/16 21:11:58 by anamieta          #+#    #+#             */
-/*   Updated: 2025/03/13 14:08:12 by piotr            ###   ########.fr       */
+/*   Updated: 2025/03/13 20:38:53 by piotr            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -45,6 +45,7 @@ class webServer {
 		void setServerNames(const std::map<std::string, std::string>& serverNames);
 		void setClientMaxBodySize(const std::string& serverName, size_t size);
 		size_t getClientMaxBodySize(const std::string& serverName) const;
+        size_t getContentLength(const std::unordered_map<std::string, std::string>& headers);
         void start();
 		int _formNumber = 0;
 		std::string readFullRequest(int clientSocket);
@@ -90,9 +91,8 @@ class webServer {
 		std::string getStatusMessage(int statusCode);
 		std::string getFilePath(const std::string& path);
 		std::string generateErrorResponse(int statusCode, const std::string& message);
-		std::unordered_map<std::string, std::string> parseHeaders(std::istringstream& requestStream);
+		std::unordered_map<std::string, std::string> parseHeaders(const std::string& headerSection);
 		std::string resolveFilePath(const std::string& path, const std::string& rootDir);
-		std::pair<std::vector<char>, std::string> readFile(const std::string& filePath);
 		std::string generateDirectoryListing(const std::string& directoryPath, const std::string& requestPath);
 		std::string executeCGI(const std::string& scriptPath, const std::string& method, const std::string& queryString, const std::string& requestBody);
         std::vector<std::string> splitMultipartBody(const std::string& body, const std::string& boundary);

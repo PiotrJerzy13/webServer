@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   webServer.hpp                                      :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: pwojnaro <pwojnaro@student.42.fr>          +#+  +:+       +#+        */
+/*   By: piotr <piotr@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/16 21:11:58 by anamieta          #+#    #+#             */
-/*   Updated: 2025/03/12 15:30:44 by pwojnaro         ###   ########.fr       */
+/*   Updated: 2025/03/13 14:08:12 by piotr            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -95,4 +95,7 @@ class webServer {
 		std::pair<std::vector<char>, std::string> readFile(const std::string& filePath);
 		std::string generateDirectoryListing(const std::string& directoryPath, const std::string& requestPath);
 		std::string executeCGI(const std::string& scriptPath, const std::string& method, const std::string& queryString, const std::string& requestBody);
+        std::vector<std::string> splitMultipartBody(const std::string& body, const std::string& boundary);
+        bool processMultipartPart(const std::string& part, const std::string& serverName);
+        std::string generateSuccessResponse(const std::string& message);
 };

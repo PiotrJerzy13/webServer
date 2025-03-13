@@ -153,11 +153,10 @@
       <div class="file-upload">
         <h3>Upload File</h3>
         <form id="fileUploadForm" enctype="multipart/form-data">
-          <input type="file" id="fileInput">
-          <button class="btn" type="submit">Upload File</button>
+          <input type="file" id="fileInput" name="file">
+          <button class="btn" type="button" onclick="uploadFile()">Upload File</button>
         </form>
       </div>
-    </div>
     
     <!-- Response Message -->
     <div id="responseMessage"></div>
@@ -188,58 +187,64 @@
         responseElement.style.display = 'none';
       }, 5000);
     }
-    
-    // Text upload form handler
-    document.getElementById('uploadForm').addEventListener('submit', function(event) {
-      event.preventDefault(); // Prevent page reload
-      const data = document.getElementById('postData').value;
-      if (!data.trim()) {
-        showResponse("Please enter some text to upload", true);
-        return;
-      }
-      
-      fetch('/uploads', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: data
-      })
-      .then(response => response.text())
-      .then(text => {
-        showResponse("Text uploaded successfully: " + text);
-        document.getElementById('postData').value = '';
-      })
-      .catch(error => {
-        showResponse("Error uploading text: " + error, true);
-        console.error('Error:', error);
-      });
+    function uploadFile() {
+    const fileInput = document.getElementById('fileInput');
+  
+    if (fileInput.files.length === 0) {
+    showResponse("Please select a file to upload", true);
+    return;
+    }
+  
+    const formData = new FormData();
+    formData.append('file', fileInput.files[0]);
+  
+  // Show loading indicator
+    showResponse("Uploading file...", false);
+  
+    fetch('/upload', {
+    method: 'POST',
+    body: formData
+    // Don't manually set Content-Type header here - browser will set it with boundary
+    })
+    .then(response => response.text())
+    .then(text => {
+    showResponse("File uploaded successfully: " + text);
+    fileInput.value = ''; // Reset file input
+    })
+    .catch(error => {
+    showResponse("Error uploading file: " + error, true);
+    console.error('Error:', error);
     });
+    }
     
-    // File upload form handler
-    document.getElementById('fileUploadForm').addEventListener('submit', function(event) {
-      event.preventDefault(); // Prevent page reload
-      const fileInput = document.getElementById('fileInput');
-      
-      if (fileInput.files.length === 0) {
-        showResponse("Please select a file to upload", true);
-        return;
-      }
-      
-      const formData = new FormData();
-      formData.append('file', fileInput.files[0]);
-      
-      fetch('/uploads', {
-        method: 'POST',
-        body: formData
-      })
-      .then(response => response.text())
-      .then(text => {
-        showResponse("File uploaded successfully: " + text);
-        fileInput.value = ''; // Reset file input
-      })
-      .catch(error => {
-        showResponse("Error uploading file: " + error, true);
-        console.error('Error:', error);
-      });
+    document.getElementById('uploadForm').addEventListener('submit', function(event) {
+    event.preventDefault(); // Prevent page reload
+    uploadFile();
+    const data = document.getElementById('postData').value;
+    if (!data.trim()) {
+    showResponse("Please enter some text to upload", true);
+    return;
+    }
+  
+    fetch('/upload', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: data
+    })
+    .then(response => {
+    if (!response.ok) {
+      throw new Error('Network response was not ok ' + response.statusText);
+    }
+    return response.text();
+    })
+    .then(text => {
+    showResponse("Text uploaded successfully: " + text);
+    document.getElementById('postData').value = '';
+    })
+    .catch(error => {
+    showResponse("Error uploading text: " + error, true);
+    console.error('Error:', error);
+    });
     });
     
     function sendGetRequest() {
@@ -250,15 +255,27 @@
     }
     
     function sendPostRequest() {
-      fetch('/uploads')
-	//   , {
-    //     method: 'POST',
-    //     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    //     body: "Testing POST request!"
-    //   })
-      .then(response => response.text())
-      .then(text => alert("POST Response: " + text))
-      .catch(error => console.error('Error:', error));
+  // Get data from input field
+    const data = document.getElementById('postData').value || "Testing POST request!";
+  
+    fetch('/upload', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: data
+    })
+    .then(response => {
+    if (!response.ok) {
+      throw new Error('Server responded with status: ' + response.status);
+        }
+    return response.text();
+    })
+    .then(text => {
+    showResponse("POST Response: " + text);
+    })
+    .catch(error => {
+    showResponse("Error: " + error.message, true);
+    console.error('Error:', error);
+    });
     }
     
     function showError405() {

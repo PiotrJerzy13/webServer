@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   parseConfig.hpp                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: pwojnaro <pwojnaro@student.42.fr>          +#+  +:+       +#+        */
+/*   By: eleni <eleni@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/12 17:50:48 by eleni             #+#    #+#             */
-/*   Updated: 2025/03/12 15:30:11 by pwojnaro         ###   ########.fr       */
+/*   Updated: 2025/03/13 10:16:53 by eleni            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -48,6 +48,7 @@ class parseConfig
 		std::string _location;
 		std::map<std::string, bool> _autoindexConfig;
 		std::map<std::string, std::string> _redirections;
+		std::vector<std::string> _methods;
 		const std::map<std::string, std::string>& getRedirections() const;
 		const std::map<std::string, std::string>& getServerNames() const;
 		void parseClientMaxBodySize(const std::string& line);
@@ -60,8 +61,8 @@ class parseConfig
 	};
 	
 	private:
-		std::string _currentServerBlock;
 		size_t _clientMaxBodySize;
+		std::string _currentServerBlock;
 		std::map<std::string, std::string> _serverNames;
 		void splitMaps(std::string& line, int& brackets);
 		void trimServer(const std::string& line);

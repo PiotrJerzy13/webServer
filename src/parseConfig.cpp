@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   parseConfig.cpp                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: pwojnaro <pwojnaro@student.42.fr>          +#+  +:+       +#+        */
+/*   By: eleni <eleni@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/12 18:29:11 by eleni             #+#    #+#             */
-/*   Updated: 2025/03/12 15:33:42 by pwojnaro         ###   ########.fr       */
+/*   Updated: 2025/03/13 10:39:39 by eleni            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -79,6 +79,25 @@ void parseConfig::fillLocationMap(std::string& line, const std::string& location
                 std::cerr << "[ERROR] Invalid return directive: " << value << std::endl;
             }
         }
+		else if (key == "methods")
+		{
+			size_t spacePos = value.find_first_of(" \t");
+			if (spacePos != std::string::npos)
+			{
+				std::istringstream methodStream(value);
+				std::string method;
+				
+				while (methodStream >> method)
+				{
+					trim(method);
+					_methods.push_back(method);
+				}
+			}
+			else
+			{
+				std::cerr << "[ERROR] Invalid return directive: " << value << std::endl;
+			}
+		}
     }
 }
 
@@ -214,6 +233,12 @@ void parseConfig::parse(const std::string& filename)
 	// {
 	// 	std::cout << pair.first << ": " << pair.second << std::endl;
 	// }
+
+	
+		std::cout << "Methods in the vector:" << std::endl;
+	for (const auto& m : _methods) {
+		std::cout << "." << m  << "." << std::endl;
+	}
 }
 
 const char* parseConfig::SyntaxErrorException::what() const throw()

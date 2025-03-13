@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   main.cpp                                           :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: pwojnaro <pwojnaro@student.42.fr>          +#+  +:+       +#+        */
+/*   By: eleni <eleni@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/03/05 15:57:27 by piotr             #+#    #+#             */
-/*   Updated: 2025/03/12 15:32:19 by pwojnaro         ###   ########.fr       */
+/*   Updated: 2025/03/13 10:25:45 by eleni            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -95,6 +95,5 @@ int main(int argc, char** argv)
         if (t.joinable())
             t.join();
     }
-    
     return 0;
 }

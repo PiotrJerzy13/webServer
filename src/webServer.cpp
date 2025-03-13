@@ -6,7 +6,7 @@
 /*   By: piotr <piotr@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/16 21:12:30 by anamieta          #+#    #+#             */
-/*   Updated: 2025/03/13 15:13:34 by piotr            ###   ########.fr       */
+/*   Updated: 2025/03/13 15:15:06 by piotr            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -1131,7 +1131,6 @@ std::string webServer::readFullRequest(int clientSocket) {
         }
     }
 
-    // Read body if Content-Length is present
     size_t contentLength = 0;
     size_t contentLengthPos = request.find("Content-Length:");
     if (contentLengthPos != std::string::npos) {
@@ -1149,7 +1148,8 @@ std::string webServer::readFullRequest(int clientSocket) {
         size_t bodyBytesRead = request.size() - (request.find("\r\n\r\n") + 4);
         while (bodyBytesRead < contentLength) {
             bytesRead = recv(clientSocket, buffer, std::min(sizeof(buffer) - 1, contentLength - bodyBytesRead), 0);
-            if (bytesRead < 0) {
+            if (bytesRead < 0) 
+            {
                 if (errno == EAGAIN || errno == EWOULDBLOCK) {
                     // No data available right now; you might want to poll again or sleep briefly
                     continue;

@@ -6,7 +6,7 @@
 /*   By: pwojnaro <pwojnaro@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/16 21:12:30 by anamieta          #+#    #+#             */
-/*   Updated: 2025/03/14 15:47:57 by pwojnaro         ###   ########.fr       */
+/*   Updated: 2025/03/14 18:30:23 by pwojnaro         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -390,17 +390,6 @@ std::string webServer::handleRequest(const std::string& fullRequest) {
             // Get the request body
             std::string body = httpRequest.getBody();
 
-            // Parse the multipart body
-            std::vector<std::string> parts = splitMultipartBody(body, boundary);
-
-            // Process each part
-            for (const std::string& part : parts) {
-                if (!processMultipartPart(part, serverName)) {
-                    return generateErrorResponse(400, "Failed to process multipart part");
-                }
-            }
-
-            // Return a success response
             return generateSuccessResponse("Files uploaded successfully");
         } else {
             // Handle non-multipart POST requests
@@ -833,25 +822,19 @@ std::string webServer::generatePostResponse(const std::string& requestBody,
 
 std::string webServer::generateDeleteResponse(const std::string& filePath)
 {
-    // Direct path construction instead of using resolveUploadPath
     std::string adjustedFilePath;
     const std::string marker = "/upload/";
     size_t pos = filePath.find(marker);
     
     if (pos != std::string::npos) {
         std::string filename = filePath.substr(pos + marker.length());
-        // Use the same path that the POST handler uses
         adjustedFilePath = "./www/html/upload/" + filename;
-    } else 
-	{
-
+    } else {
         adjustedFilePath = filePath;
     }
     
-    if (!FileUtils::deleteFile(adjustedFilePath)) {
-        if (!FileUtils::fileExists(adjustedFilePath)) {
-            return generateErrorResponse(404, "File not found");
-        }
+    if (!FileUtils::deleteFile(adjustedFilePath)) 
+	{
         return generateErrorResponse(500, "Failed to delete file");
     }
     
@@ -1128,76 +1111,4 @@ std::string webServer::generateSuccessResponse(const std::string& message) {
     response << "\r\n";
     response << message;
     return response.str();
-}
-
-bool webServer::processMultipartPart(const std::string& part, const std::string& serverName) 
-{
-
-    size_t headersEnd = part.find("\r\n\r\n");
-    if (headersEnd == std::string::npos) {
-        std::cerr << "[ERROR] Invalid multipart part: missing headers" << std::endl;
-        return false;
-    }
-
-    std::string headers = part.substr(0, headersEnd);
-    std::string content = part.substr(headersEnd + 4);
-
-    // Parse headers to get the filename and field name
-    std::string filename;
-    std::string fieldName;
-    size_t namePos = headers.find("name=\"");
-    if (namePos != std::string::npos) {
-        size_t nameEnd = headers.find("\"", namePos + 6);
-        if (nameEnd != std::string::npos) {
-            fieldName = headers.substr(namePos + 6, nameEnd - (namePos + 6));
-        }
-    }
-    size_t filenamePos = headers.find("filename=\"");
-    if (filenamePos != std::string::npos) {
-        size_t filenameEnd = headers.find("\"", filenamePos + 10);
-        if (filenameEnd != std::string::npos) {
-            filename = headers.substr(filenamePos + 10, filenameEnd - (filenamePos + 10));
-        }
-    }
-
-    // If this part contains a file, save it
-    if (!filename.empty()) {
-        // Use serverName to determine the upload directory
-        std::string uploadDir = "./www/html/upload/" + serverName;
-        
-        // Create directory if it doesn't exist
-        if (!FileUtils::createDirectoryIfNotExists(uploadDir)) {
-            return false;
-        }
-
-        std::string filePath = uploadDir + "/" + filename;
-        
-        if (!FileUtils::writeFile(filePath, content)) {
-            return false;
-        }
-        
-        std::cout << "[INFO] File uploaded to server '" << serverName << "': " << filePath << std::endl;
-    } else if (!fieldName.empty()) {
-        // Handle form fields (if needed)
-        std::cout << "[DEBUG] Form field: " << fieldName << " = " << content << std::endl;
-    }
-
-    return true;
-}
-
-std::vector<std::string> webServer::splitMultipartBody(const std::string& body, const std::string& boundary) {
-    std::vector<std::string> parts;
-    size_t boundaryPos = body.find(boundary);
-
-    while (boundaryPos != std::string::npos) {
-        size_t nextBoundaryPos = body.find(boundary, boundaryPos + boundary.length());
-        if (nextBoundaryPos == std::string::npos) break;
-
-        std::string part = body.substr(boundaryPos + boundary.length(), nextBoundaryPos - (boundaryPos + boundary.length()));
-        parts.push_back(part);
-
-        boundaryPos = nextBoundaryPos;
-    }
-
-    return parts;
 }

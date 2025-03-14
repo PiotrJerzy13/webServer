@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   webServer.cpp                                      :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: piotr <piotr@student.42.fr>                +#+  +:+       +#+        */
+/*   By: pwojnaro <pwojnaro@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/16 21:12:30 by anamieta          #+#    #+#             */
-/*   Updated: 2025/03/13 20:39:08 by piotr            ###   ########.fr       */
+/*   Updated: 2025/03/14 15:47:57 by pwojnaro         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -472,9 +472,13 @@ std::string webServer::handleRequest(const std::string& fullRequest) {
                 return generateErrorResponse(403, "Directory listing is disabled, and no index file found.");
             }
         }
+		
     }
-
-    // Handle GET requests for files
+	if (method == "DELETE")
+	{
+		return generateDeleteResponse(filePath);
+	}
+    
     return generateGetResponse(filePath);
 }
 
@@ -829,7 +833,20 @@ std::string webServer::generatePostResponse(const std::string& requestBody,
 
 std::string webServer::generateDeleteResponse(const std::string& filePath)
 {
-    std::string adjustedFilePath = FileUtils::resolveUploadPath(filePath);
+    // Direct path construction instead of using resolveUploadPath
+    std::string adjustedFilePath;
+    const std::string marker = "/upload/";
+    size_t pos = filePath.find(marker);
+    
+    if (pos != std::string::npos) {
+        std::string filename = filePath.substr(pos + marker.length());
+        // Use the same path that the POST handler uses
+        adjustedFilePath = "./www/html/upload/" + filename;
+    } else 
+	{
+
+        adjustedFilePath = filePath;
+    }
     
     if (!FileUtils::deleteFile(adjustedFilePath)) {
         if (!FileUtils::fileExists(adjustedFilePath)) {

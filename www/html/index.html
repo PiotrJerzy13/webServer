@@ -136,7 +136,8 @@
       <button class="btn" onclick="sendGetRequest(); window.location.href='get_index.html'">GET</button>
       <button class="btn">CGI</button>
       <button class="btn" onclick="window.location.href='https://www.google.com'">REDIRECT</button>
-	  <button class="btn">DELETE</button>
+	  <button class="btn error-btn" onclick="sendDeleteRequest()">DELETE</button>
+
     </div>
     
     <div class="upload-section">
@@ -256,7 +257,7 @@
     
     function sendPostRequest() {
   // Get data from input field
-    const data = document.getElementById('postData').value || "Testing POST request!";
+    // const data = document.getElementById('postData').value || "Testing POST request!";
   
     fetch('/upload', {
     method: 'POST',
@@ -278,6 +279,31 @@
     });
     }
     
+	function sendDeleteRequest() {
+    const filename = prompt("Enter the file name to delete:", "form_data_2.txt");
+    
+    if (!filename) {
+      showResponse("Delete cancelled", false);
+      return;
+    }
+
+    fetch('/upload/' + filename, {
+      method: 'DELETE',
+    })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('Server responded with status: ' + response.status);
+      }
+      return response.text();
+    })
+    .then(text => {
+      showResponse("DELETE Response: File " + filename + " deleted successfully");
+    })
+    .catch(error => {
+      showResponse("Error deleting file: " + error.message, true);
+      console.error('Error:', error);
+    });
+  	}
     function showError405() {
       const errorInfo = document.getElementById('errorInfo');
       const errorFrame = document.getElementById('errorFrame');

@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   FileUtilis.cpp                                     :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: piotr <piotr@student.42.fr>                +#+  +:+       +#+        */
+/*   By: pwojnaro <pwojnaro@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/03/13 20:03:48 by piotr             #+#    #+#             */
-/*   Updated: 2025/03/13 20:27:34 by piotr            ###   ########.fr       */
+/*   Updated: 2025/03/14 15:33:27 by pwojnaro         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -114,18 +114,3 @@
     }
 }
 
-    std::string FileUtils::resolveUploadPath(const std::string& filePath, const std::string& serverName) {
-    std::string adjustedFilePath = filePath;
-    const std::string marker = "/upload/";
-    size_t pos = filePath.find(marker);
-    
-    if (pos != std::string::npos) {
-        if (!serverName.empty()) {
-            adjustedFilePath = "./www/upload/" + serverName + "/" + filePath.substr(pos + marker.length());
-        } else {
-            adjustedFilePath = "./www/upload/" + filePath.substr(pos + marker.length());
-        }
-    }
-    
-    return adjustedFilePath;
-};

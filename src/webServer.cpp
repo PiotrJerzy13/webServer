@@ -6,7 +6,7 @@
 /*   By: pwojnaro <pwojnaro@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/16 21:12:30 by anamieta          #+#    #+#             */
-/*   Updated: 2025/03/15 20:36:10 by pwojnaro         ###   ########.fr       */
+/*   Updated: 2025/03/15 20:55:58 by pwojnaro         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -1030,14 +1030,36 @@ void webServer::setClientMaxBodySize(const std::string& serverName, size_t size)
 }
 
 size_t webServer::getClientMaxBodySize(const std::string& serverName) const {
+    // Try exact match first
     auto it = _clientMaxBodySizes.find(serverName);
     if (it != _clientMaxBodySizes.end()) {
         std::cout << "[DEBUG] Found client_max_body_size for server '" << serverName 
-                  << "': " << it->second << " bytes\n";
+                 << "': " << it->second << " bytes\n";
         return it->second;
     }
+    
+    // Try without port number
+    size_t colonPos = serverName.find(":");
+    if (colonPos != std::string::npos) {
+        std::string nameWithoutPort = serverName.substr(0, colonPos);
+        it = _clientMaxBodySizes.find(nameWithoutPort);
+        if (it != _clientMaxBodySizes.end()) {
+            std::cout << "[DEBUG] Found client_max_body_size for server '" << nameWithoutPort 
+                     << "': " << it->second << " bytes\n";
+            return it->second;
+        }
+    }
+    
+    // Try just "localhost" as fallback
+    it = _clientMaxBodySizes.find("localhost");
+    if (it != _clientMaxBodySizes.end()) {
+        std::cout << "[DEBUG] Found client_max_body_size for 'localhost': " 
+                 << it->second << " bytes\n";
+        return it->second;
+    }
+    
     std::cout << "[DEBUG] Using default client_max_body_size for server '" << serverName 
-              << "': 1048576 bytes\n";
+             << "': 1048576 bytes\n";
     return 1048576;
 }
 

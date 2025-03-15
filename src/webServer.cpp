@@ -6,7 +6,7 @@
 /*   By: pwojnaro <pwojnaro@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/16 21:12:30 by anamieta          #+#    #+#             */
-/*   Updated: 2025/03/15 13:48:57 by pwojnaro         ###   ########.fr       */
+/*   Updated: 2025/03/15 14:31:15 by pwojnaro         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -694,31 +694,70 @@ std::string webServer::generatePostResponse(const std::string& requestBody,
         std::string responseText = "Form data uploaded successfully: " + filename;
         return HTTPResponse(201, "text/plain", responseText).generateResponse();
     }
-    // Handle plain text
-    else if (contentType.find("text/plain") != std::string::npos)
-    {
-        std::cout << "[DEBUG] Processing plain text upload" << std::endl;
-        
-        std::string filename = "text_data_" + getCurrentTimeString() + ".txt";
-        std::string filePath = uploadDir + "/" + filename;
-        
-        std::cout << "[DEBUG] Saving text data to: " << filePath << std::endl;
-        
-        if (!FileUtils::writeFile(filePath, requestBody)) {
-            return generateErrorResponse(500, "Failed to save file");
-        }
-        
-        std::cout << "[POST] Text data saved: " << filename << std::endl;
-        
-        // Return success response
-        std::string responseText = "Text data uploaded successfully: " + filename;
-        return HTTPResponse(201, "text/plain", responseText).generateResponse();
-    }
-    else
-    {
-        std::cerr << "[ERROR] Unsupported content type: " << contentType << std::endl;
-        return generateErrorResponse(415, "Unsupported Media Type");
-    }
+	else if (contentType.find("text/plain") != std::string::npos)
+	{
+	std::cout << "[DEBUG] Processing plain text upload" << std::endl;
+
+	// Parse the headers from the request body to extract the filename
+	std::unordered_map<std::string, std::string> headers = parseHeaders(requestBody);  // Assuming you have a function to parse headers
+
+	// Default filename if not found
+	std::string filename;
+	// std::string filename = "text_data_" + getCurrentTimeString() + ".txt";
+	
+	// Extract the filename from Content-Disposition header
+	if (headers.find("Content-Disposition") != headers.end()) {
+		std::string disposition = headers["Content-Disposition"];
+		size_t filenamePos = disposition.find("filename=\"");
+		if (filenamePos != std::string::npos) {
+			size_t start = filenamePos + 10;  // Skip past "filename=\""
+			size_t end = disposition.find("\"", start);  // Find the closing quote
+			if (end != std::string::npos) {
+				// Extract and sanitize the filename
+				filename = sanitizeFilename(disposition.substr(start, end - start));
+				std::cout << "[DEBUG] Original filename extracted: " << filename << std::endl;
+			}
+		}
+	}
+	
+	// Ensure the filename is sanitized for file system safety
+	filename = sanitizeFilename(filename);  // Assuming you have a function for sanitizing filenames
+
+	// Get the upload directory from the server configuration
+	std::string uploadDir = "./www/html/upload";
+	auto it = _serverConfig.find("upload_dir");
+	if (it != _serverConfig.end()) {
+		uploadDir = it->second;
+	}
+
+	// Create upload directory if it doesn't exist
+	if (!FileUtils::createDirectoryIfNotExists(uploadDir)) {
+		return generateErrorResponse(500, "Server configuration error");
+	}
+
+	// Path where the file will be saved
+	std::string filePath = uploadDir + "/" + filename;
+	std::cout << "[DEBUG] Saving text data to: " << filePath << std::endl;
+
+	// Save the file (write the request body to the file)
+	if (!FileUtils::writeFile(filePath, requestBody)) {
+		return generateErrorResponse(500, "Failed to save file");
+	}
+
+	std::cout << "[POST] Text data saved: " << filename << std::endl;
+
+	// Return success response
+	std::string responseText = "Text data uploaded successfully: " + filename;
+	return HTTPResponse(201, "text/plain", responseText).generateResponse();
+}
+else
+{
+	std::cerr << "[ERROR] Unsupported content type: " << contentType << std::endl;
+	return generateErrorResponse(415, "Unsupported Media Type");
+}
+
+// Final fallback return (should never be reached)
+return generateErrorResponse(500, "Unexpected error in generatePostResponse");
 }
 
 std::string webServer::generateDeleteResponse(const std::string& filePath)
@@ -942,6 +981,68 @@ size_t webServer::getContentLength(const std::unordered_map<std::string, std::st
     return 0;
 }
 
+// std::string webServer::readFullRequest(int clientSocket) {
+//     std::string request;
+//     char buffer[4096] = {0};
+//     ssize_t bytesRead;
+
+//     // Read headers
+//     while ((bytesRead = recv(clientSocket, buffer, sizeof(buffer) - 1, 0)) > 0) {
+//         buffer[bytesRead] = '\0';
+//         request.append(buffer, bytesRead);
+
+//         // Check for end of headers
+//         size_t headersEnd = request.find("\r\n\r\n");
+//         if (headersEnd != std::string::npos) {
+//             break;
+//         }
+//     }
+
+//     // Parse headers
+//     std::string headerSection = request.substr(0, request.find("\r\n\r\n"));
+//     auto headers = parseHeaders(headerSection);
+
+//     // Handle "Expect: 100-continue" if present
+//     auto expectIt = headers.find("Expect");
+//     if (expectIt != headers.end() && expectIt->second == "100-continue") {
+//         const char* continueResponse = "HTTP/1.1 100 Continue\r\n\r\n";
+//         send(clientSocket, continueResponse, strlen(continueResponse), 0);
+//     }
+
+//     // Get content length and read body if needed
+//     size_t contentLength = getContentLength(headers);
+    
+//     // Read the body
+//     if (contentLength > 0) {
+//         size_t bodyBytesRead = request.size() - (request.find("\r\n\r\n") + 4);
+//         while (bodyBytesRead < contentLength) {
+//             bytesRead = recv(clientSocket, buffer, std::min(sizeof(buffer) - 1, contentLength - bodyBytesRead), 0);
+//             if (bytesRead < 0) 
+//             {
+//                 if (errno == EAGAIN || errno == EWOULDBLOCK) {
+//                     // No data available right now; you might want to poll again or sleep briefly
+//                     continue;
+//                 } else {
+//                     std::cerr << "[ERROR] recv() failed" << std::endl;
+//                     break;
+//                 }
+//             } else if (bytesRead == 0) {
+//                 std::cerr << "[ERROR] Connection closed before full body received" << std::endl;
+//                 break;
+//             }
+//             buffer[bytesRead] = '\0';
+//             request.append(buffer, bytesRead);
+//             bodyBytesRead += bytesRead;
+//         }
+//     }
+
+//     // Debug the full request
+//     std::cout << "[DEBUG] Full request: " << request << std::endl;
+//     std::cout << "[DEBUG] Request body size: " << request.substr(request.find("\r\n\r\n") + 4).size() << " bytes" << std::endl;
+
+//     return request;
+// }
+
 std::string webServer::readFullRequest(int clientSocket) {
     std::string request;
     char buffer[4096] = {0};
@@ -959,6 +1060,11 @@ std::string webServer::readFullRequest(int clientSocket) {
         }
     }
 
+    if (request.find("\r\n\r\n") == std::string::npos) {
+        std::cerr << "[ERROR] Request headers not properly terminated" << std::endl;
+        return "";
+    }
+
     // Parse headers
     std::string headerSection = request.substr(0, request.find("\r\n\r\n"));
     auto headers = parseHeaders(headerSection);
@@ -972,14 +1078,15 @@ std::string webServer::readFullRequest(int clientSocket) {
 
     // Get content length and read body if needed
     size_t contentLength = getContentLength(headers);
-    
+    size_t bodyBytesRead = 0;
+
     // Read the body
     if (contentLength > 0) {
-        size_t bodyBytesRead = request.size() - (request.find("\r\n\r\n") + 4);
+        size_t headersEndPos = request.find("\r\n\r\n") + 4;
+        bodyBytesRead = request.size() - headersEndPos; // Number of bytes already read from body
         while (bodyBytesRead < contentLength) {
             bytesRead = recv(clientSocket, buffer, std::min(sizeof(buffer) - 1, contentLength - bodyBytesRead), 0);
-            if (bytesRead < 0) 
-            {
+            if (bytesRead < 0) {
                 if (errno == EAGAIN || errno == EWOULDBLOCK) {
                     // No data available right now; you might want to poll again or sleep briefly
                     continue;
@@ -999,7 +1106,14 @@ std::string webServer::readFullRequest(int clientSocket) {
 
     // Debug the full request
     std::cout << "[DEBUG] Full request: " << request << std::endl;
-    std::cout << "[DEBUG] Request body size: " << request.substr(request.find("\r\n\r\n") + 4).size() << " bytes" << std::endl;
+
+    // Only access the body if the headers are properly separated and body is present
+    size_t bodyStart = request.find("\r\n\r\n");
+    if (bodyStart != std::string::npos) {
+        std::cout << "[DEBUG] Request body size: " << request.substr(bodyStart + 4).size() << " bytes" << std::endl;
+    } else {
+        std::cerr << "[ERROR] No body found in the request." << std::endl;
+    }
 
     return request;
 }

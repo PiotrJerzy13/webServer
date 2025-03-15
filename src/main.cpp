@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   main.cpp                                           :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: eleni <eleni@student.42.fr>                +#+  +:+       +#+        */
+/*   By: pwojnaro <pwojnaro@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/03/05 15:57:27 by piotr             #+#    #+#             */
-/*   Updated: 2025/03/13 10:25:45 by eleni            ###   ########.fr       */
+/*   Updated: 2025/03/15 19:41:41 by pwojnaro         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -78,6 +78,7 @@ int main(int argc, char** argv)
 
             // Set the server names before starting the server
             server->setServerNames(parser[j].getServerNames());
+			server->setRootDirectories(parser[j].getRootDirectories());
             
             threads.push_back(std::thread([server]()
             {

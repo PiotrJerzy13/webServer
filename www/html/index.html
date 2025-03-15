@@ -136,18 +136,16 @@
       <button class="btn" onclick="sendGetRequest(); window.location.href='get_index.html'">GET</button>
       <button class="btn">CGI</button>
       <button class="btn" onclick="window.location.href='https://www.google.com'">REDIRECT</button>
-	  <button class="btn error-btn" onclick="sendDeleteRequest()">DELETE</button>
-
+      <button class="btn error-btn" onclick="sendDeleteRequest()">DELETE</button>
     </div>
     
     <div class="upload-section">
       <h2>Upload Data</h2>
       
       <!-- Text Upload Form -->
-      <form class="upload-form" id="uploadForm">
+      <form class="upload-form" id="textUploadForm">
         <input type="text" id="postData" placeholder="Enter text to upload">
-      <button class="btn" onclick="sendPostRequest()">POST</button>
-
+        <button type="submit" class="btn">POST</button>
       </form>
       
       <!-- File Upload Form -->
@@ -155,9 +153,10 @@
         <h3>Upload File</h3>
         <form id="fileUploadForm" enctype="multipart/form-data">
           <input type="file" id="fileInput" name="file">
-          <button class="btn" type="button" onclick="uploadFile()">Upload File</button>
+          <button type="submit" class="btn">Upload File</button>
         </form>
       </div>
+    </div>
     
     <!-- Response Message -->
     <div id="responseMessage"></div>
@@ -188,122 +187,117 @@
         responseElement.style.display = 'none';
       }, 5000);
     }
-    function uploadFile() {
-    const fileInput = document.getElementById('fileInput');
-  
-    if (fileInput.files.length === 0) {
-    showResponse("Please select a file to upload", true);
-    return;
+
+    // Function to handle file uploads
+    function uploadFile(event) {
+      event.preventDefault(); // Prevent default form submission
+      
+      const fileInput = document.getElementById('fileInput');
+      
+      if (fileInput.files.length === 0) {
+        showResponse("Please select a file to upload", true);
+        return;
+      }
+      
+      const formData = new FormData();
+      formData.append('file', fileInput.files[0]);
+      
+      // Show loading indicator
+      showResponse("Uploading file...", false);
+      
+      fetch('/upload', {
+        method: 'POST',
+        body: formData
+      })
+      .then(response => {
+        if (!response.ok) {
+          if (response.status === 413) {
+            throw new Error("File is too large! Maximum size is 1MB.");
+          } else {
+            throw new Error("Server error: " + response.status);
+          }
+        }
+        return response.text();
+      })
+      .then(text => {
+        showResponse("File uploaded successfully: " + text.substring(0, 50) + (text.length > 50 ? '...' : ''));
+        fileInput.value = ''; // Reset file input
+      })
+      .catch(error => {
+        showResponse("Error uploading file: " + error.message, true);
+        console.error('Error:', error);
+      });
     }
-  
-    const formData = new FormData();
-    formData.append('file', fileInput.files[0]);
-  
-  // Show loading indicator
-    showResponse("Uploading file...", false);
-  
-    fetch('/upload', {
-    method: 'POST',
-    body: formData
-    // Don't manually set Content-Type header here - browser will set it with boundary
-    })
-    .then(response => response.text())
-    .then(text => {
-    showResponse("File uploaded successfully: " + text);
-    fileInput.value = ''; // Reset file input
-    })
-    .catch(error => {
-    showResponse("Error uploading file: " + error, true);
-    console.error('Error:', error);
-    });
+
+    // Function to handle text POST requests
+    function sendPostRequest(event) {
+      event.preventDefault(); // Prevent default form submission
+      
+      const data = document.getElementById('postData').value;
+      
+      if (!data.trim()) {
+        showResponse("Please enter some text to upload", true);
+        return;
+      }
+      
+      fetch('/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: data
+      })
+      .then(response => {
+        if (!response.ok) {
+          if (response.status === 413) {
+            throw new Error('Content is too large! Maximum size is 1MB.');
+          } else {
+            throw new Error('Server responded with status: ' + response.status);
+          }
+        }
+        return response.text();
+      })
+      .then(text => {
+        showResponse("POST Response: " + text);
+        document.getElementById('postData').value = ''; // Clear input field
+      })
+      .catch(error => {
+        showResponse("Error: " + error.message, true);
+        console.error('Error:', error);
+      });
     }
-    
-    document.getElementById('uploadForm').addEventListener('submit', function(event) {
-    event.preventDefault(); // Prevent page reload
-    uploadFile();
-    const data = document.getElementById('postData').value;
-    if (!data.trim()) {
-    showResponse("Please enter some text to upload", true);
-    return;
-    }
-  
-    fetch('/upload', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: data
-    })
-    .then(response => {
-    if (!response.ok) {
-      throw new Error('Network response was not ok ' + response.statusText);
-    }
-    return response.text();
-    })
-    .then(text => {
-    showResponse("Text uploaded successfully: " + text);
-    document.getElementById('postData').value = '';
-    })
-    .catch(error => {
-    showResponse("Error uploading text: " + error, true);
-    console.error('Error:', error);
-    });
-    });
-    
+
     function sendGetRequest() {
       fetch('/images')
         .then(response => response.text())
         .then(data => alert("GET Response: " + data))
         .catch(error => console.error('Error:', error));
     }
-    
-    function sendPostRequest() {
-  // Get data from input field
-    // const data = document.getElementById('postData').value || "Testing POST request!";
-  
-    fetch('/upload', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: data
-    })
-    .then(response => {
-    if (!response.ok) {
-      throw new Error('Server responded with status: ' + response.status);
+
+    function sendDeleteRequest() {
+      const filename = prompt("Enter the file name to delete:", "");
+      
+      if (!filename) {
+        showResponse("Delete cancelled", false);
+        return;
+      }
+
+      fetch('/upload/' + filename, {
+        method: 'DELETE',
+      })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Server responded with status: ' + response.status);
         }
-    return response.text();
-    })
-    .then(text => {
-    showResponse("POST Response: " + text);
-    })
-    .catch(error => {
-    showResponse("Error: " + error.message, true);
-    console.error('Error:', error);
-    });
-    }
-    
-	function sendDeleteRequest() {
-    const filename = prompt("Enter the file name to delete:", "");
-    
-    if (!filename) {
-      showResponse("Delete cancelled", false);
-      return;
+        return response.text();
+      })
+      .then(text => {
+        showResponse("DELETE Response: File " + filename + " deleted successfully");
+      })
+      .catch(error => {
+        showResponse("Error deleting file: " + error.message, true);
+        console.error('Error:', error);
+      });
     }
 
-    fetch('/upload/' + filename, {
-      method: 'DELETE',
-    })
-    .then(response => {
-      if (!response.ok) {
-        throw new Error('Server responded with status: ' + response.status);
-      }
-      return response.text();
-    })
-    .then(text => {
-      showResponse("DELETE Response: File " + filename + " deleted successfully");
-    })
-    .catch(error => {
-      showResponse("Error deleting file: " + error.message, true);
-      console.error('Error:', error);
-    });
-  	}
     function showError405() {
       const errorInfo = document.getElementById('errorInfo');
       const errorFrame = document.getElementById('errorFrame');
@@ -338,6 +332,15 @@
       // Update message
       errorInfo.innerHTML = 'Attempting to show 405 error page. If not visible, <a href="error_405.html" target="_blank">click here</a> to open directly.';
     }
+
+    // Add event listeners when DOM is fully loaded
+    document.addEventListener('DOMContentLoaded', function() {
+      // Text upload form
+      document.getElementById('textUploadForm').addEventListener('submit', sendPostRequest);
+      
+      // File upload form
+      document.getElementById('fileUploadForm').addEventListener('submit', uploadFile);
+    });
   </script>
 </body>
 </html>

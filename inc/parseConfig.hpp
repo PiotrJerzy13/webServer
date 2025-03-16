@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   parseConfig.hpp                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: pwojnaro <pwojnaro@student.42.fr>          +#+  +:+       +#+        */
+/*   By: piotr <piotr@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/12 17:50:48 by eleni             #+#    #+#             */
-/*   Updated: 2025/03/15 20:13:30 by pwojnaro         ###   ########.fr       */
+/*   Updated: 2025/03/16 15:26:22 by piotr            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -36,15 +36,15 @@ class parseConfig {
 	
 		std::map<std::string, CGIConfig> _cgiConfig;
 	
-		parseConfig() {} // Default constructor
+		parseConfig() {} 
 	
-		size_t getClientMaxBodySize(const std::string& serverName) const {
-			auto it = _clientMaxBodySize.find(serverName);
-			if (it != _clientMaxBodySize.end()) {
-				return it->second; // Return the size for the specific server
-			}
-			return 1048576; // Default value if serverName is not found
-		}
+        size_t getClientMaxBodySize(const std::string& serverBlock) const {
+            auto it = _clientMaxBodySize.find(serverBlock);
+            if (it != _clientMaxBodySize.end()) {
+                return it->second;
+            }
+            return 1048576; // Default
+        }
 	
 		std::string _mainString;
 		std::stack<std::string> _blocks;
@@ -56,7 +56,7 @@ class parseConfig {
 	
 		const std::map<std::string, std::string>& getRedirections() const;
 		const std::map<std::string, std::string>& getServerNames() const;
-		void parseClientMaxBodySize(const std::string& value);
+		void parseClientMaxBodySize(const std::string& line);
 		void parse(const std::string& filename);
 		const std::map<std::string, std::string>& getRootDirectories() const {
 			return _rootDirectories;
@@ -78,13 +78,13 @@ class parseConfig {
 		void fillLocationMap(std::string& line, const std::string& location);
 		const std::map<std::string, bool>& getAutoindexConfig() const;
 		const parseConfig::CGIConfig& getCGIConfig(const std::string& location) const;
-		std::map<std::string, std::string> _rootDirectories; // For "root"
-		std::map<std::string, std::string> _aliasDirectories; // For "alias"
-		std::map<std::string, std::string> _redirections; // For "return"
-		std::map<std::string, std::vector<std::string>> _allowedMethods; // For "methods"
-		std::map<std::string, std::vector<std::string>> _tryFiles; // For "try_files"
-		std::map<std::string, std::string> _allow; // For "allow"
-		std::map<std::string, std::string> _indexFiles; // For "index"
-		std::map<std::string, std::string> _cgiPass; // For "cgi_pass"
+		std::map<std::string, std::string> _rootDirectories;
+		std::map<std::string, std::string> _aliasDirectories;
+		std::map<std::string, std::string> _redirections;
+		std::map<std::string, std::vector<std::string>> _allowedMethods;
+		std::map<std::string, std::vector<std::string>> _tryFiles;
+		std::map<std::string, std::string> _allow;
+		std::map<std::string, std::string> _indexFiles;
+		std::map<std::string, std::string> _cgiPass; 
 		std::map<std::string, std::map<std::string, std::string>> _cgiParams;
 	};

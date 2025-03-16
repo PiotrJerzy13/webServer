@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   main.cpp                                           :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: pwojnaro <pwojnaro@student.42.fr>          +#+  +:+       +#+        */
+/*   By: piotr <piotr@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/03/05 15:57:27 by piotr             #+#    #+#             */
-/*   Updated: 2025/03/15 21:05:53 by pwojnaro         ###   ########.fr       */
+/*   Updated: 2025/03/16 12:47:51 by piotr            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -80,10 +80,10 @@ int main(int argc, char** argv)
             server->setServerNames(parser[j].getServerNames());
 			server->setRootDirectories(parser[j].getRootDirectories());
             
-			for (const auto& serverName : parser[j].getServerNames()) {
-				size_t maxBodySize = parser[j].getClientMaxBodySize(serverName.second);
-				server->setClientMaxBodySize(serverName.second, maxBodySize);
-			}
+            for (const auto& [serverBlock, serverName] : parser[j].getServerNames()) {
+                size_t maxBodySize = parser[j].getClientMaxBodySize(serverBlock);
+                server->setClientMaxBodySize(serverName, maxBodySize);
+            }
 	
             threads.push_back(std::thread([server]()
             {

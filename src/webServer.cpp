@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   webServer.cpp                                      :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: pwojnaro <pwojnaro@student.42.fr>          +#+  +:+       +#+        */
+/*   By: piotr <piotr@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/16 21:12:30 by anamieta          #+#    #+#             */
-/*   Updated: 2025/03/15 20:55:58 by pwojnaro         ###   ########.fr       */
+/*   Updated: 2025/03/16 15:28:22 by piotr            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -123,128 +123,44 @@ std::string webServer::generateResponse(const HTTPRequest& request)
     return handleRequest(request.getRawRequest());
 }
 
-// void webServer::processRead(int clientSocket)
-// {
-//     // Verify the connection exists.
-//     if (_connections.find(clientSocket) == _connections.end())
-//     {
-//         std::cerr << "[ERROR] Received data for unknown client: " << clientSocket << std::endl;
-//         closeConnection(clientSocket);
-//         return;
-//     }
-	
-//     std::string fullRequest = readFullRequest(clientSocket);
-//     if (fullRequest.empty())
-//     {
-//         closeConnection(clientSocket);
-//         return;
-//     }
-
-//     // Get the connection for this client.
-//     Connection& conn = _connections[clientSocket];
-//     conn.inputBuffer = fullRequest;
-
-//     // If the server name hasn't been set yet, extract it from the Host header.
-//     if (conn.serverName.empty())
-//     {
-//         HTTPRequest req(fullRequest);
-//         std::string host = req.getHeader("Host");
-//         conn.serverName = (!host.empty()) ? host : "default";
-//     }
-
-//     HTTPRequest req(fullRequest);
-//     std::string contentLengthStr = req.getHeader("Content-Length");
-//     size_t contentLength = 0;
-//     if (!contentLengthStr.empty())
-//     {
-//         contentLength = std::stoul(contentLengthStr);
-//     }
-
-//     // Enforce the client_max_body_size limit.
-//     size_t maxBodySize = getClientMaxBodySize(conn.serverName);
-
-// 	if (contentLength > maxBodySize)
-// 	{
-//     std::cerr << "[ERROR] Request body size (" << contentLength 
-//               << " bytes) exceeds client_max_body_size (" << maxBodySize 
-//               << " bytes) for server " << conn.serverName << "\n";
-
-//         // Fallback to default error image handling if HTML file is missing.
-//         auto [imgContent, contentType] = HTTPResponse::getDefaultErrorPage(413);
-//         HTTPResponse errorResponse(413, contentType, imgContent);
-//         std::string response = errorResponse.generateResponse();
-//         sendResponse(conn.socket, response);
-    
-//     closeConnection(clientSocket);
-//     return;
-// 	}
-//     // Process the full HTTP request.
-//     std::string responseStr = handleRequest(fullRequest);
-//     conn.outputBuffer = responseStr;
-//     updatePollEvents(clientSocket, POLLOUT);
-// 	}
-
-void webServer::processRead(int clientSocket) {
+void webServer::processRead(int clientSocket)
+{
     // Verify the connection exists.
-    if (_connections.find(clientSocket) == _connections.end()) {
+    if (_connections.find(clientSocket) == _connections.end())
+    {
         std::cerr << "[ERROR] Received data for unknown client: " << clientSocket << std::endl;
         closeConnection(clientSocket);
         return;
     }
-
-    std::cout << "[DEBUG] Processing request for client socket: " << clientSocket << std::endl;
-
-    // Read the full request.
+	
     std::string fullRequest = readFullRequest(clientSocket);
-    if (fullRequest.empty()) {
-        std::cerr << "[ERROR] Empty request received from client: " << clientSocket << std::endl;
+    if (fullRequest.empty())
+    {
         closeConnection(clientSocket);
         return;
     }
-
-    std::cout << "[DEBUG] Full request:\n" << fullRequest << std::endl;
 
     // Get the connection for this client.
     Connection& conn = _connections[clientSocket];
     conn.inputBuffer = fullRequest;
 
     // If the server name hasn't been set yet, extract it from the Host header.
-    if (conn.serverName.empty()) {
+    if (conn.serverName.empty())
+    {
         HTTPRequest req(fullRequest);
         std::string host = req.getHeader("Host");
         conn.serverName = (!host.empty()) ? host : "default";
-        std::cout << "[DEBUG] Extracted server name from Host header: " << conn.serverName << std::endl;
-    }
-
-    // Extract Content-Length header.
-    HTTPRequest req(fullRequest);
-    std::string contentLengthStr = req.getHeader("Content-Length");
-    size_t contentLength = 0;
-    if (!contentLengthStr.empty()) {
-        contentLength = std::stoul(contentLengthStr);
-        std::cout << "[DEBUG] Content-Length: " << contentLength << " bytes" << std::endl;
-    } else {
-        std::cout << "[DEBUG] No Content-Length header found" << std::endl;
     }
 
     // Enforce the client_max_body_size limit.
     size_t maxBodySize = getClientMaxBodySize(conn.serverName);
-    std::cout << "[DEBUG] client_max_body_size for server '" << conn.serverName 
-              << "': " << maxBodySize << " bytes" << std::endl;
-
-    if (contentLength > maxBodySize) {
-        std::cerr << "[ERROR] Request body size (" << contentLength 
+    if (fullRequest.size() > maxBodySize)
+    {
+        std::cerr << "[ERROR] Request size (" << fullRequest.size() 
                   << " bytes) exceeds client_max_body_size (" << maxBodySize 
                   << " bytes) for server " << conn.serverName << "\n";
-
-        // Fallback to default error image handling if HTML file is missing.
-        auto [imgContent, contentType] = HTTPResponse::getDefaultErrorPage(413);
-        HTTPResponse errorResponse(413, contentType, imgContent);
-        std::string response = errorResponse.generateResponse();
-
-        std::cout << "[DEBUG] Sending 413 error response to client: " << clientSocket << std::endl;
+        std::string response = generateErrorResponse(413, "Payload Too Large");
         sendResponse(conn.socket, response);
-
         closeConnection(clientSocket);
         return;
     }
@@ -252,10 +168,6 @@ void webServer::processRead(int clientSocket) {
     // Process the full HTTP request.
     std::string responseStr = handleRequest(fullRequest);
     conn.outputBuffer = responseStr;
-
-    std::cout << "[DEBUG] Generated response for client: " << clientSocket << std::endl;
-    std::cout << "[DEBUG] Response:\n" << responseStr << std::endl;
-
     updatePollEvents(clientSocket, POLLOUT);
 }
 
@@ -668,7 +580,7 @@ std::string webServer::generatePostResponse(const std::string& requestBody,
 	const std::string& contentType,
 	const std::string& serverName)
 {
-(void)serverName; // Suppress unused parameter warning
+(void)serverName; // to remove
 
 std::cout << "[DEBUG] Processing POST request" << std::endl;
 std::cout << "[DEBUG] Content-Type: " << contentType << std::endl;
@@ -1116,9 +1028,13 @@ std::string webServer::readFullRequest(int clientSocket) {
     std::string request;
     char buffer[4096] = {0};
     ssize_t bytesRead;
-
+    
     // Read headers
     while ((bytesRead = recv(clientSocket, buffer, sizeof(buffer) - 1, 0)) > 0) {
+        if (bytesRead <= 0) {
+            std::cerr << "[ERROR] Empty request received from client: " << clientSocket << std::endl;
+            return "";
+        }
         buffer[bytesRead] = '\0';
         request.append(buffer, bytesRead);
 

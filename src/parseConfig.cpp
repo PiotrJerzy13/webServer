@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   parseConfig.cpp                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: pwojnaro <pwojnaro@student.42.fr>          +#+  +:+       +#+        */
+/*   By: piotr <piotr@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/12 18:29:11 by eleni             #+#    #+#             */
-/*   Updated: 2025/03/15 20:30:16 by pwojnaro         ###   ########.fr       */
+/*   Updated: 2025/03/16 15:27:03 by piotr            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -383,22 +383,27 @@ const std::map<std::string, std::string>& parseConfig::getServerNames() const
     return _serverNames;
 }
 
-void parseConfig::parseClientMaxBodySize(const std::string& value) {
+void parseConfig::parseClientMaxBodySize(const std::string& value)
+{
     std::string trimmedValue = trim(value);
 
-    if (trimmedValue.empty()) {
+    if (trimmedValue.empty())
+	{
         throw SyntaxErrorException();
     }
 
     size_t numericPart = 0;
     std::string unit;
-
+    
     // Extract numeric part
     size_t unitPos = trimmedValue.find_first_not_of("0123456789");
-    if (unitPos == std::string::npos) {
+    if (unitPos == std::string::npos)
+	{ 
         // Only numbers found, no unit
         numericPart = std::stoi(trimmedValue);
-    } else {
+    }
+	else
+	{
         numericPart = std::stoi(trimmedValue.substr(0, unitPos));
         unit = trimmedValue.substr(unitPos);
         unit = trim(unit); // Trim spaces
@@ -421,10 +426,9 @@ void parseConfig::parseClientMaxBodySize(const std::string& value) {
         throw SyntaxErrorException(); // Invalid unit
     }
 
-    // Store the size for the current server block
     _clientMaxBodySize[_currentServerBlock] = size;
-    std::cout << "[DEBUG] Set client_max_body_size for server block '" << _currentServerBlock 
-              << "' to " << size << " bytes\n";
+    std::cout << "[DEBUG] client_max_body_size for server block '" << _currentServerBlock 
+          << "' set to " << size << " bytes\n";
 }
 
 const parseConfig::CGIConfig& parseConfig::getCGIConfig(const std::string& location) const

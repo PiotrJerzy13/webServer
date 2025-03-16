@@ -6,7 +6,7 @@
 /*   By: piotr <piotr@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/12 17:50:48 by eleni             #+#    #+#             */
-/*   Updated: 2025/03/16 15:26:22 by piotr            ###   ########.fr       */
+/*   Updated: 2025/03/16 15:59:40 by piotr            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -45,6 +45,9 @@ class parseConfig {
             }
             return 1048576; // Default
         }
+        const std::map<std::string, std::vector<std::string>>& getAllowedMethods() const {
+            return _allowedMethods;
+        }
 	
 		std::string _mainString;
 		std::stack<std::string> _blocks;
@@ -53,6 +56,7 @@ class parseConfig {
 		std::map<std::string, bool> _autoindexConfig;
 		std::string _location;
 		std::vector<std::string> _methods;
+        
 	
 		const std::map<std::string, std::string>& getRedirections() const;
 		const std::map<std::string, std::string>& getServerNames() const;

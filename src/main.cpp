@@ -6,7 +6,7 @@
 /*   By: piotr <piotr@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/03/05 15:57:27 by piotr             #+#    #+#             */
-/*   Updated: 2025/03/16 12:47:51 by piotr            ###   ########.fr       */
+/*   Updated: 2025/03/16 15:53:14 by piotr            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,7 +16,6 @@
 #include <thread>
 #include <vector>
 #include <memory>
-
 
 int main(int argc, char** argv) 
 {
@@ -78,8 +77,14 @@ int main(int argc, char** argv)
 
             // Set the server names before starting the server
             server->setServerNames(parser[j].getServerNames());
-			server->setRootDirectories(parser[j].getRootDirectories());
-            
+
+            // Set the root directories before starting the server
+            server->setRootDirectories(parser[j].getRootDirectories());
+
+            // Set the allowed methods before starting the server
+            server->setAllowedMethods(parser[j].getAllowedMethods()); // <-- Add this line
+
+            // Set the client max body size for each server block
             for (const auto& [serverBlock, serverName] : parser[j].getServerNames()) {
                 size_t maxBodySize = parser[j].getClientMaxBodySize(serverBlock);
                 server->setClientMaxBodySize(serverName, maxBodySize);

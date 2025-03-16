@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   webServer.hpp                                      :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: pwojnaro <pwojnaro@student.42.fr>          +#+  +:+       +#+        */
+/*   By: piotr <piotr@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/16 21:11:58 by anamieta          #+#    #+#             */
-/*   Updated: 2025/03/15 19:28:20 by pwojnaro         ###   ########.fr       */
+/*   Updated: 2025/03/16 15:50:33 by piotr            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -50,6 +50,16 @@ class webServer {
         void start();
 		int _formNumber = 0;
 		std::string readFullRequest(int clientSocket);
+        std::vector<std::string> getAllowedMethods(const std::string& location) const {
+            auto it = _allowedMethods.find(location);
+            if (it != _allowedMethods.end()) {
+                return it->second;
+            }
+            return {}; // Return an empty vector if no methods are specified
+        }
+        void setAllowedMethods(const std::map<std::string, std::vector<std::string>>& allowedMethods) {
+            _allowedMethods = allowedMethods;
+        }
 		
 		
     private:
@@ -64,6 +74,7 @@ class webServer {
 		pid_t cgiPid;
 		std::string serverName;
 	};
+        std::map<std::string, std::vector<std::string>> _allowedMethods;
 		std::map<std::string, std::string> _aliasDirectories;
 		std::map<std::string, size_t> _clientMaxBodySizes;
 		std::map<std::string, bool> _autoindexConfig;

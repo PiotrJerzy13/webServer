@@ -6,7 +6,7 @@
 /*   By: piotr <piotr@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/16 21:12:30 by anamieta          #+#    #+#             */
-/*   Updated: 2025/03/16 15:28:22 by piotr            ###   ########.fr       */
+/*   Updated: 2025/03/16 15:58:24 by piotr            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -362,6 +362,27 @@ std::string webServer::handleRequest(const std::string& fullRequest) {
     std::cout << "[DEBUG] Request Path: " << rawPath << "\n";
     std::cout << "[DEBUG] Decoded Path: " << decodedPath << "\n";
 
+    bool methodAllowed = false;
+    std::string matchedLocation = "";
+
+    // Find the longest matching location for the path
+    for (const auto& [location, allowedMethods] : _allowedMethods) {
+        if (decodedPath.find(location) == 0 && location.length() > matchedLocation.length()) {
+            matchedLocation = location;
+            methodAllowed = (std::find(allowedMethods.begin(), allowedMethods.end(), method) != allowedMethods.end());
+        }
+    }
+
+    // If no matching location is found, assume the method is allowed (or handle as needed)
+    if (matchedLocation.empty()) {
+        methodAllowed = true; // Default behavior if no location-specific rules are defined
+    }
+
+    // If the method is not allowed, return a 405 Method Not Allowed response
+    if (!methodAllowed) {
+        std::cout << "[DEBUG] Method " << method << " not allowed for path: " << decodedPath << "\n";
+        return generateMethodNotAllowedResponse();
+    }
     // Handle explicit redirection codes (e.g. /301 or /302 in the URL)
     if (decodedPath.size() > 4 &&
        (decodedPath.substr(0, 4) == "/301" || decodedPath.substr(0, 4) == "/302")) {

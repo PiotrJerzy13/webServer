@@ -6,7 +6,7 @@
 /*   By: piotr <piotr@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/12 18:29:11 by eleni             #+#    #+#             */
-/*   Updated: 2025/03/16 15:27:03 by piotr            ###   ########.fr       */
+/*   Updated: 2025/03/16 15:40:56 by piotr            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -32,74 +32,6 @@ std::string parseConfig::trim(const std::string& line)
 	return final;
 }
 
-// void parseConfig::fillLocationMap(std::string& line, const std::string& location)
-// {
-//     std::string trimmedLine = trim(line);
-//     if (trimmedLine.empty())
-//         return;
-
-//     size_t pos = trimmedLine.find_first_of(" \t");
-//     if (pos != std::string::npos)
-//     {
-//         std::string key = trim(trimmedLine.substr(0, pos));
-//         std::string value = trim(trimmedLine.substr(pos + 1));
-
-//         // Store the key-value pair in the location map
-//         auto it = this->_parsingLocation.find(location);
-//         if (it != this->_parsingLocation.end()) 
-//             it->second.push_back(key + " " + value);
-//         else 
-//             this->_parsingLocation.insert({location, {key + " " + value}});
-
-//         // Handle autoindex directive
-//         if (key == "autoindex")
-//         {
-//             bool autoindex_value = (value == "on");
-//             _autoindexConfig[location] = autoindex_value;
-//             std::cout << "[DEBUG] autoindex for location '" << location 
-//                       << "' set to " << (autoindex_value ? "on" : "off") << std::endl;
-//         }
-//         // Handle redirection directive
-//         else if (key == "return")
-//         {
-//             // Split the value into status code and target URL
-//             size_t spacePos = value.find_first_of(" \t");
-//             if (spacePos != std::string::npos)
-//             {
-//                 std::string statusCode = value.substr(0, spacePos);
-//                 std::string targetUrl = value.substr(spacePos + 1);
-
-//                 // Store the redirection as "status_code target_url"
-//                 _redirections[location] = statusCode + " " + targetUrl;
-//                 std::cout << "[DEBUG] Redirection for location '" << location 
-//                           << "' set to " << statusCode << " " << targetUrl << std::endl;
-//             }
-//             else
-//             {
-//                 std::cerr << "[ERROR] Invalid return directive: " << value << std::endl;
-//             }
-//         }
-// 		else if (key == "methods")
-// 		{
-// 			size_t spacePos = value.find_first_of(" \t");
-// 			if (spacePos != std::string::npos)
-// 			{
-// 				std::istringstream methodStream(value);
-// 				std::string method;
-				
-// 				while (methodStream >> method)
-// 				{
-// 					trim(method);
-// 					_methods.push_back(method);
-// 				}
-// 			}
-// 			else
-// 			{
-// 				std::cerr << "[ERROR] Invalid return directive: " << value << std::endl;
-// 			}
-// 		}
-//     }
-// }
 void parseConfig::fillLocationMap(std::string& line, const std::string& location)
 {
     std::string trimmedLine = trim(line);

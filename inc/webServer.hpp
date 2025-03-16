@@ -6,7 +6,7 @@
 /*   By: pwojnaro <pwojnaro@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/16 21:11:58 by anamieta          #+#    #+#             */
-/*   Updated: 2025/03/14 18:30:47 by pwojnaro         ###   ########.fr       */
+/*   Updated: 2025/03/15 19:28:20 by pwojnaro         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -46,6 +46,7 @@ class webServer {
 		void setClientMaxBodySize(const std::string& serverName, size_t size);
 		size_t getClientMaxBodySize(const std::string& serverName) const;
         size_t getContentLength(const std::unordered_map<std::string, std::string>& headers);
+		void setRootDirectories(const std::map<std::string, std::string>& rootDirectories);
         void start();
 		int _formNumber = 0;
 		std::string readFullRequest(int clientSocket);
@@ -63,6 +64,7 @@ class webServer {
 		pid_t cgiPid;
 		std::string serverName;
 	};
+		std::map<std::string, std::string> _aliasDirectories;
 		std::map<std::string, size_t> _clientMaxBodySizes;
 		std::map<std::string, bool> _autoindexConfig;
 		std::map<std::string, std::string> _serverNames;
@@ -71,6 +73,7 @@ class webServer {
 		std::unordered_multimap<std::string, std::vector<std::string>> _locationConfig;
 		SocketManager _socketManager; 
         std::unordered_map<int, Connection> _connections;
+		std::map<std::string, std::string> _rootDirectories;
         std::string handleRequest(const std::string& fullRequest);
         void sendResponse(Socket& clientSocket, const std::string& response);
 		std::string generateDeleteResponse(const std::string& filePath);
@@ -96,4 +99,7 @@ class webServer {
 		std::string generateDirectoryListing(const std::string& directoryPath, const std::string& requestPath);
 		std::string executeCGI(const std::string& scriptPath, const std::string& method, const std::string& queryString, const std::string& requestBody);
         std::string generateSuccessResponse(const std::string& message);
+		std::string handleMultipartUpload(const std::string& requestBody, const std::string& contentType, const std::string& uploadDir);
+		std::string handleFormUrlEncodedUpload(const std::string& requestBody,const std::string& uploadDir);
+		std::string handleTextUpload(const std::string& requestBody, const std::string& uploadDir);
 };

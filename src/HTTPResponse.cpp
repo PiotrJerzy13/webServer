@@ -6,7 +6,7 @@
 /*   By: pwojnaro <pwojnaro@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/03/07 18:50:13 by pwojnaro          #+#    #+#             */
-/*   Updated: 2025/03/09 15:35:36 by pwojnaro         ###   ########.fr       */
+/*   Updated: 2025/03/15 18:22:51 by pwojnaro         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -70,6 +70,7 @@ std::optional<std::string> readImageFile(const std::string& path)
 
 //Attempts to serve an error page based on errorCode. Searches for an error page image in ./www/html/error_pages/
 //If not found, falls back to default.jpg. If no images exist, returns a plain text fallback
+
 std::pair<std::string, std::string> HTTPResponse::getDefaultErrorPage(int errorCode)
 {
     const std::string basePath = "./www/html/error_pages/";
@@ -78,21 +79,21 @@ std::pair<std::string, std::string> HTTPResponse::getDefaultErrorPage(int errorC
 
     std::cout << "[INFO] Serving error page for code: " << errorCode << std::endl;
 
-	auto content = readImageFile(imagePath);
-	if (content)
-	{
-		return {*content, "image/jpeg"};
-	}
-	
-	auto defaultContent = readImageFile(defaultImagePath);
-	if (defaultContent)
-	{
-		return {*defaultContent, "image/jpeg"};
-	}
-	
-	std::cerr << "[ERROR] Missing default error image: " << defaultImagePath << std::endl;
-	std::cout << "[INFO] Returning text fallback for error " << errorCode << std::endl;
-	return {"Error " + std::to_string(errorCode) + ": Missing error page.", "text/plain"};
+    auto content = readImageFile(imagePath);
+    if (content)
+    {
+        return {*content, "image/jpeg"};
+    }
+    
+    auto defaultContent = readImageFile(defaultImagePath);
+    if (defaultContent)
+    {
+        return {*defaultContent, "image/jpeg"};
+    }
+    
+    std::cerr << "[ERROR] Missing default error image: " << defaultImagePath << std::endl;
+    std::cout << "[INFO] Returning text fallback for error " << errorCode << std::endl;
+    return {"Error " + std::to_string(errorCode) + ": Missing error page.", "text/plain"};
 }
 
 

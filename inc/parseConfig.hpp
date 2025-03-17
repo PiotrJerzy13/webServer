@@ -6,7 +6,7 @@
 /*   By: piotr <piotr@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/12 17:50:48 by eleni             #+#    #+#             */
-/*   Updated: 2025/03/16 15:59:40 by piotr            ###   ########.fr       */
+/*   Updated: 2025/03/17 20:59:19 by piotr            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -23,19 +23,17 @@
 #include <iostream>
 #include <fstream>
 #include <map>
+#include "webServer.hpp"
 
 class parseConfig {
 	public:
-		struct CGIConfig {
-			std::string cgiPass; // Path to the CGI interpreter (e.g., /usr/bin/python3)
-			std::string scriptFilename; // SCRIPT_FILENAME template
-			std::string pathInfo; // PATH_INFO template
-			std::string queryString; // QUERY_STRING template
-			std::string requestMethod; // REQUEST_METHOD template
-		};
-	
-		std::map<std::string, CGIConfig> _cgiConfig;
-	
+    struct CGIConfig {
+        std::string cgiPass;
+        std::string scriptFilename;
+        std::string pathInfo;
+        std::string queryString;
+        std::string requestMethod;
+    };
 		parseConfig() {} 
 	
         size_t getClientMaxBodySize(const std::string& serverBlock) const {
@@ -48,7 +46,10 @@ class parseConfig {
         const std::map<std::string, std::vector<std::string>>& getAllowedMethods() const {
             return _allowedMethods;
         }
-	
+        const std::map<std::string, CGIConfig>& getCGIConfigs() const {
+            return _cgiConfig;
+        }
+        std::map<std::string, CGIConfig> _cgiConfig;
 		std::string _mainString;
 		std::stack<std::string> _blocks;
 		std::unordered_multimap<std::string, std::string> _parsingServer;
@@ -92,3 +93,4 @@ class parseConfig {
 		std::map<std::string, std::string> _cgiPass; 
 		std::map<std::string, std::map<std::string, std::string>> _cgiParams;
 	};
+    

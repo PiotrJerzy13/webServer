@@ -6,7 +6,7 @@
 /*   By: piotr <piotr@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/16 21:11:58 by anamieta          #+#    #+#             */
-/*   Updated: 2025/03/16 15:50:33 by piotr            ###   ########.fr       */
+/*   Updated: 2025/03/17 19:05:09 by piotr            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -74,6 +74,27 @@ class webServer {
 		pid_t cgiPid;
 		std::string serverName;
 	};
+    struct CGIConfig {
+        std::string cgiPass; // Path to the CGI interpreter (e.g., /usr/bin/python3)
+        std::string scriptFilename; // SCRIPT_FILENAME template
+        std::string pathInfo; // PATH_INFO template
+        std::string queryString; // QUERY_STRING template
+        std::string requestMethod; // REQUEST_METHOD template
+    };
+    void setCGIConfig(const std::map<std::string, CGIConfig>& cgiConfig) {
+        _cgiConfig = cgiConfig;
+    }
+    
+    // Method to get CGI configuration for a location
+    const CGIConfig& getCGIConfig(const std::string& location) const {
+        auto it = _cgiConfig.find(location);
+        if (it != _cgiConfig.end()) {
+            return it->second;
+        }
+        static const CGIConfig defaultConfig; // Return empty default if not found
+        return defaultConfig;
+    }
+        std::map<std::string, CGIConfig> _cgiConfig;
         std::map<std::string, std::vector<std::string>> _allowedMethods;
 		std::map<std::string, std::string> _aliasDirectories;
 		std::map<std::string, size_t> _clientMaxBodySizes;

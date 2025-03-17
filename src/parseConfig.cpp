@@ -6,7 +6,7 @@
 /*   By: piotr <piotr@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/12 18:29:11 by eleni             #+#    #+#             */
-/*   Updated: 2025/03/16 15:40:56 by piotr            ###   ########.fr       */
+/*   Updated: 2025/03/17 21:37:21 by piotr            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -125,9 +125,10 @@ void parseConfig::fillLocationMap(std::string& line, const std::string& location
             _indexFiles[location] = value;
             std::cout << "[DEBUG] index for location '" << location << "' set to " << value << std::endl;
         }
-        else if (key == "cgi_pass")
+        if (key == "cgi_pass")
         {
-            _cgiPass[location] = value;
+            // Store the interpreter path in the CGIConfig struct
+            _cgiConfig[location].cgiPass = value;
             std::cout << "[DEBUG] cgi_pass for location '" << location << "' set to " << value << std::endl;
         }
         else if (key == "cgi_param")
@@ -137,7 +138,28 @@ void parseConfig::fillLocationMap(std::string& line, const std::string& location
             {
                 std::string paramName = value.substr(0, spacePos);
                 std::string paramValue = value.substr(spacePos + 1);
+                
+                // Map the CGI parameter to the appropriate field in the CGIConfig struct
+                if (paramName == "SCRIPT_FILENAME")
+                {
+                    _cgiConfig[location].scriptFilename = paramValue;
+                }
+                else if (paramName == "PATH_INFO")
+                {
+                    _cgiConfig[location].pathInfo = paramValue;
+                }
+                else if (paramName == "QUERY_STRING")
+                {
+                    _cgiConfig[location].queryString = paramValue;
+                }
+                else if (paramName == "REQUEST_METHOD")
+                {
+                    _cgiConfig[location].requestMethod = paramValue;
+                }
+                
+                // Also store in the old _cgiParams map for backward compatibility
                 _cgiParams[location][paramName] = paramValue;
+                
                 std::cout << "[DEBUG] cgi_param for location '" << location 
                           << "' set: " << paramName << " = " << paramValue << std::endl;
             }
@@ -153,8 +175,6 @@ void parseConfig::fillLocationMap(std::string& line, const std::string& location
         }
     }
 }
-
-
 
 std::string parseConfig::trimLocation(const std::string& line)
 {

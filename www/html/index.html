@@ -138,16 +138,16 @@
       <button class="btn" onclick="window.location.href='https://www.google.com'">REDIRECT</button>
       <button class="btn error-btn" onclick="sendDeleteRequest()">DELETE</button>
     </div>
-    
+
     <div class="upload-section">
       <h2>Upload Data</h2>
-      
+
       <!-- Text Upload Form -->
       <form class="upload-form" id="textUploadForm">
         <input type="text" id="postData" placeholder="Enter text to upload">
         <button type="submit" class="btn">POST</button>
       </form>
-      
+
       <!-- File Upload Form -->
       <div class="file-upload">
         <h3>Upload File</h3>
@@ -157,10 +157,10 @@
         </form>
       </div>
     </div>
-    
+
     <!-- Response Message -->
     <div id="responseMessage"></div>
-    
+
     <!-- Error Testing Section -->
     <div class="error-section">
       <h2>Error Testing</h2>
@@ -168,11 +168,11 @@
       <button class="btn error-btn" onclick="showError405()">Show 405 Error</button>
       <p id="errorInfo" style="display: none;">Loading 405 error page...</p>
     </div>
-    
+
     <!-- Error frame to display the error page -->
     <iframe id="errorFrame" class="error-frame" frameborder="0"></iframe>
   </div>
-  
+
   <script>
     // Show response message with optional styling
     function showResponse(message, isError = false) {
@@ -181,7 +181,7 @@
       responseElement.style.display = 'block';
       responseElement.style.backgroundColor = isError ? '#ffebee' : '#e8f5e9';
       responseElement.style.color = isError ? '#b71c1c' : '#00796B';
-      
+
       // Auto-hide after 5 seconds
       setTimeout(() => {
         responseElement.style.display = 'none';
@@ -190,56 +190,55 @@
 
     // Function to handle file uploads
     function uploadFile(event) {
-      event.preventDefault(); // Prevent default form submission
-      
-      const fileInput = document.getElementById('fileInput');
-      
-      if (fileInput.files.length === 0) {
+    event.preventDefault(); // Prevent default form submission
+
+    const fileInput = document.getElementById('fileInput');
+    if (fileInput.files.length === 0) {
         showResponse("Please select a file to upload", true);
         return;
-      }
-      
-      const formData = new FormData();
-      formData.append('file', fileInput.files[0]);
-      
-      // Show loading indicator
-      showResponse("Uploading file...", false);
-      
-      fetch('/upload', {
+    }
+
+    const formData = new FormData();
+    formData.append('file', fileInput.files[0]);
+
+    // Show loading indicator
+    showResponse("Uploading file...", false);
+
+    fetch('/upload', {
         method: 'POST',
-        body: formData
-      })
-      .then(response => {
+        body: formData // This automatically sets the Content-Type to multipart/form-data
+    })
+    .then(response => {
         if (!response.ok) {
-          if (response.status === 413) {
-            throw new Error("File is too large! Maximum size is 1MB.");
-          } else {
-            throw new Error("Server error: " + response.status);
-          }
+            if (response.status === 413) {
+                throw new Error("File is too large! Maximum size is 1MB.");
+            } else {
+                throw new Error("Server error: " + response.status);
+            }
         }
         return response.text();
-      })
-      .then(text => {
+    })
+    .then(text => {
         showResponse("File uploaded successfully: " + text.substring(0, 50) + (text.length > 50 ? '...' : ''));
         fileInput.value = ''; // Reset file input
-      })
-      .catch(error => {
+    })
+    .catch(error => {
         showResponse("Error uploading file: " + error.message, true);
         console.error('Error:', error);
-      });
-    }
+    });
+}
 
     // Function to handle text POST requests
     function sendPostRequest(event) {
       event.preventDefault(); // Prevent default form submission
-      
+
       const data = document.getElementById('postData').value;
-      
+
       if (!data.trim()) {
         showResponse("Please enter some text to upload", true);
         return;
       }
-      
+
       fetch('/upload', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -274,7 +273,7 @@
 
     function sendDeleteRequest() {
       const filename = prompt("Enter the file name to delete:", "");
-      
+
       if (!filename) {
         showResponse("Delete cancelled", false);
         return;
@@ -301,13 +300,13 @@
     function showError405() {
       const errorInfo = document.getElementById('errorInfo');
       const errorFrame = document.getElementById('errorFrame');
-      
+
       // Show loading message
       errorInfo.style.display = 'block';
-      
+
       // Option 1: Open in a new tab/window
       window.open('error_405.html', '_blank');
-      
+
       // Option 2: Display in iframe (if the server supports iframes for error pages)
       // Create a hidden form that will submit with FOO method
       const form = document.createElement('form');
@@ -315,20 +314,20 @@
       form.action = '/index.html';
       form.target = 'errorFrame';
       document.body.appendChild(form);
-      
+
       // Display the iframe
       errorFrame.style.display = 'block';
-      
+
       // Submit the form to trigger the error
       try {
         form.submit();  // This might not actually use the FOO method due to browser limitations
       } catch (e) {
         console.error('Form submission error:', e);
       }
-      
+
       // Remove the form
       document.body.removeChild(form);
-      
+
       // Update message
       errorInfo.innerHTML = 'Attempting to show 405 error page. If not visible, <a href="error_405.html" target="_blank">click here</a> to open directly.';
     }
@@ -337,7 +336,7 @@
     document.addEventListener('DOMContentLoaded', function() {
       // Text upload form
       document.getElementById('textUploadForm').addEventListener('submit', sendPostRequest);
-      
+
       // File upload form
       document.getElementById('fileUploadForm').addEventListener('submit', uploadFile);
     });

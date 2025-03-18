@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HTTPRequest.cpp                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: pwojnaro <pwojnaro@student.42.fr>          +#+  +:+       +#+        */
+/*   By: piotr <piotr@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/03/07 18:49:05 by pwojnaro          #+#    #+#             */
-/*   Updated: 2025/03/12 15:31:47 by pwojnaro         ###   ########.fr       */
+/*   Updated: 2025/03/18 10:50:06 by piotr            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -29,14 +29,14 @@ void HTTPRequest::parseRequest(const std::string& rawRequest) {
     std::getline(requestStream, line); // Skip the first line (already parsed)
 
     // Parse headers until empty line (which marks end of headers)
-    while (std::getline(requestStream, line) && !line.empty()) {
+    while (std::getline(requestStream, line) && !line.empty()) 
+    {
         // Remove trailing \r if present
         if (!line.empty() && line[line.size() - 1] == '\r') {
             line.erase(line.size() - 1);
         }
-
-        // Skip empty lines
-        if (line.empty()) {
+        if (line.empty()) 
+        {
             continue;
         }
 
@@ -54,7 +54,6 @@ void HTTPRequest::parseRequest(const std::string& rawRequest) {
     if (headerEnd != std::string::npos) {
         body = rawRequest.substr(headerEnd + 4); // Skip \r\n\r\n
 
-        // If Content-Length is present, ensure the body is the correct size
         std::string contentLengthStr = getHeader("Content-Length");
         if (!contentLengthStr.empty()) {
             size_t contentLength = std::stoul(contentLengthStr);

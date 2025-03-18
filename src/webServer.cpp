@@ -6,7 +6,7 @@
 /*   By: piotr <piotr@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/16 21:12:30 by anamieta          #+#    #+#             */
-/*   Updated: 2025/03/17 21:36:54 by piotr            ###   ########.fr       */
+/*   Updated: 2025/03/18 11:33:29 by piotr            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -830,7 +830,7 @@ std::string webServer::executeCGI(const std::string& scriptPath, const std::stri
     signal(SIGALRM, handleTimeout);
     timeoutOccurred = 0;
 
-    // Set a timeout for the CGI script (e.g., 5 seconds)
+    // Set a timeout for the CGI script
     alarm(5);
 
     // Extract location from script path (assuming location is the directory part)
@@ -1248,4 +1248,28 @@ std::string webServer::generateSuccessResponse(const std::string& message) {
 }
 void webServer::setRootDirectories(const std::map<std::string, std::string>& rootDirectories) {
     _rootDirectories = rootDirectories;
+}
+
+void webServer::setCGIConfig(const std::map<std::string, webServer::CGIConfig>& cgiConfig) {
+    _cgiConfig = cgiConfig;
+}
+
+const webServer::CGIConfig& webServer::getCGIConfig(const std::string& location) const {
+    auto it = _cgiConfig.find(location);
+    if (it != _cgiConfig.end()) {
+        return it->second;
+    }
+    static const webServer::CGIConfig defaultConfig;
+    return defaultConfig;
+}
+std::vector<std::string> webServer::getAllowedMethods(const std::string& location) const {
+    auto it = _allowedMethods.find(location);
+    if (it != _allowedMethods.end()) {
+        return it->second;
+    }
+    return {}; // Return an empty vector if no methods are specified
+}
+
+void webServer::setAllowedMethods(const std::map<std::string, std::vector<std::string>>& allowedMethods) {
+    _allowedMethods = allowedMethods;
 }

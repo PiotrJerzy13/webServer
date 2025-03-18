@@ -6,7 +6,7 @@
 /*   By: anamieta <anamieta@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/16 21:12:30 by anamieta          #+#    #+#             */
-/*   Updated: 2025/03/18 17:06:24 by anamieta         ###   ########.fr       */
+/*   Updated: 2025/03/18 17:31:15 by anamieta         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -478,7 +478,6 @@ std::string webServer::handleRequest(const std::string& fullRequest) {
 	// Handle POST requests (uploads and form submissions).
 	if (method == "POST") {
 		std::string contentType = httpRequest.getContentTypeFromHeaders("Content-Type");
-		std::cout << "[DEBUG] Content-Type: " << contentType << std::endl;
 		if (contentType.empty())
 			contentType = "text/plain";
 		std::string serverName = httpRequest.getHeader("Host");
@@ -1225,10 +1224,8 @@ std::string webServer::readFullRequest(int clientSocket) {
 			bodyBytesRead += bytesRead;
 		}
 	}
-
 	// Debug the full request
-	std::cout << "[DEBUG] Full request: " << request << std::endl;
-
+	// std::cout << "[DEBUG] Full request: " << request << std::endl;
 	// Only access the body if the headers are properly separated and body is present
 	size_t bodyStart = request.find("\r\n\r\n");
 	if (bodyStart != std::string::npos) {

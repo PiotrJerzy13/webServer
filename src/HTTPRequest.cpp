@@ -6,7 +6,7 @@
 /*   By: anamieta <anamieta@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/03/07 18:49:05 by pwojnaro          #+#    #+#             */
-/*   Updated: 2025/03/18 17:03:44 by anamieta         ###   ########.fr       */
+/*   Updated: 2025/03/18 17:29:41 by anamieta         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -70,9 +70,8 @@ void HTTPRequest::parseRequest(const std::string& rawRequest) {
 	{
         std::cout << "[DEBUG] No body found in request" << std::endl;
     }
-
-    std::cout << "[DEBUG] Extracted body size: " << body.size() << " bytes" << std::endl;
-    std::cout << "[DEBUG] Body: " << body << std::endl;
+    // std::cout << "[DEBUG] Extracted body size: " << body.size() << " bytes" << std::endl;
+    // std::cout << "[DEBUG] Body: " << body << std::endl;
 }
 
 std::string HTTPRequest::getMethod() const

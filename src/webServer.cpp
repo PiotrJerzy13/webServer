@@ -6,7 +6,7 @@
 /*   By: anamieta <anamieta@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/16 21:12:30 by anamieta          #+#    #+#             */
-/*   Updated: 2025/03/18 17:31:15 by anamieta         ###   ########.fr       */
+/*   Updated: 2025/03/19 18:59:16 by anamieta         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -1161,80 +1161,122 @@ std::string webServer::handleTextUpload(const std::string& requestBody,
 }
 
 std::string webServer::readFullRequest(int clientSocket) {
-	std::string request;
-	char buffer[4096] = {0};
-	ssize_t bytesRead;
+    std::string request;
+    char buffer[4096] = {0};
+    ssize_t bytesRead;
 
-	// Read headers
-	while ((bytesRead = recv(clientSocket, buffer, sizeof(buffer) - 1, 0)) > 0) {
-		if (bytesRead <= 0) {
-			std::cerr << "[ERROR] Empty request received from client: " << clientSocket << std::endl;
-			return "";
-		}
-		buffer[bytesRead] = '\0';
-		request.append(buffer, bytesRead);
+    // Set the socket to non-blocking mode
+    int flags = fcntl(clientSocket, F_GETFL, 0);
+    if (flags == -1) {
+        std::cerr << "[ERROR] Failed to get socket flags" << std::endl;
+        return "";
+    }
+    if (fcntl(clientSocket, F_SETFL, flags | O_NONBLOCK) == -1) {
+        std::cerr << "[ERROR] Failed to set socket to non-blocking mode" << std::endl;
+        return "";
+    }
 
-		// Check for end of headers
-		size_t headersEnd = request.find("\r\n\r\n");
-		if (headersEnd != std::string::npos) {
-			break;
-		}
-	}
+    // Read headers
+    while (true) {
+        struct pollfd pfd;
+        pfd.fd = clientSocket;
+        pfd.events = POLLIN;
 
-	if (request.find("\r\n\r\n") == std::string::npos) {
-		std::cerr << "[ERROR] Request headers not properly terminated" << std::endl;
-		return "";
-	}
+        int pollResult = poll(&pfd, 1, 1000); // 1 second timeout
+        if (pollResult > 0) {
+            if (pfd.revents & POLLIN) {
+                bytesRead = recv(clientSocket, buffer, sizeof(buffer) - 1, 0);
+                if (bytesRead < 0) {
+                    std::cerr << "[ERROR] recv() failed" << std::endl;
+                    return "";
+                } else if (bytesRead == 0) {
+                    std::cerr << "[ERROR] Connection closed before full body received" << std::endl;
+                    return "";
+                }
+                buffer[bytesRead] = '\0';
+                request.append(buffer, bytesRead);
 
-	// Parse headers
-	std::string headerSection = request.substr(0, request.find("\r\n\r\n"));
-	auto headers = parseHeaders(headerSection);
+                // Check for end of headers
+                size_t headersEnd = request.find("\r\n\r\n");
+                if (headersEnd != std::string::npos) {
+                    break;
+                }
+            }
+        } else if (pollResult == 0) {
+            std::cerr << "[ERROR] Poll timeout while reading headers" << std::endl;
+            return "";
+        } else {
+            std::cerr << "[ERROR] Poll failed" << std::endl;
+            return "";
+        }
+    }
 
-	// Handle "Expect: 100-continue" if present
-	auto expectIt = headers.find("Expect");
-	if (expectIt != headers.end() && expectIt->second == "100-continue") {
-		const char* continueResponse = "HTTP/1.1 100 Continue\r\n\r\n";
-		send(clientSocket, continueResponse, strlen(continueResponse), 0);
-	}
+    if (request.find("\r\n\r\n") == std::string::npos) {
+        std::cerr << "[ERROR] Request headers not properly terminated" << std::endl;
+        return "";
+    }
 
-	// Get content length and read body if needed
-	size_t contentLength = getContentLength(headers);
-	size_t bodyBytesRead = 0;
+    // Parse headers
+    std::string headerSection = request.substr(0, request.find("\r\n\r\n"));
+    auto headers = parseHeaders(headerSection);
 
-	// Read the body
-	if (contentLength > 0) {
-		size_t headersEndPos = request.find("\r\n\r\n") + 4;
-		bodyBytesRead = request.size() - headersEndPos; // Number of bytes already read from body
-		while (bodyBytesRead < contentLength) {
-			bytesRead = recv(clientSocket, buffer, std::min(sizeof(buffer) - 1, contentLength - bodyBytesRead), 0);
-			if (bytesRead < 0) {
-				if (errno == EAGAIN || errno == EWOULDBLOCK) {
-					// No data available right now; you might want to poll again or sleep briefly
-					continue;
-				} else {
-					std::cerr << "[ERROR] recv() failed" << std::endl;
-					break;
-				}
-			} else if (bytesRead == 0) {
-				std::cerr << "[ERROR] Connection closed before full body received" << std::endl;
-				break;
-			}
-			buffer[bytesRead] = '\0';
-			request.append(buffer, bytesRead);
-			bodyBytesRead += bytesRead;
-		}
-	}
-	// Debug the full request
-	// std::cout << "[DEBUG] Full request: " << request << std::endl;
-	// Only access the body if the headers are properly separated and body is present
-	size_t bodyStart = request.find("\r\n\r\n");
-	if (bodyStart != std::string::npos) {
-		std::cout << "[DEBUG] Request body size: " << request.substr(bodyStart + 4).size() << " bytes" << std::endl;
-	} else {
-		std::cerr << "[ERROR] No body found in the request." << std::endl;
-	}
+    // Handle "Expect: 100-continue" if present
+    auto expectIt = headers.find("Expect");
+    if (expectIt != headers.end() && expectIt->second == "100-continue") {
+        const char* continueResponse = "HTTP/1.1 100 Continue\r\n\r\n";
+        send(clientSocket, continueResponse, strlen(continueResponse), 0);
+    }
 
-	return request;
+    // Get content length and read body if needed
+    size_t contentLength = getContentLength(headers);
+    size_t bodyBytesRead = 0;
+
+    // Read the body
+    if (contentLength > 0) {
+        size_t headersEndPos = request.find("\r\n\r\n") + 4;
+        bodyBytesRead = request.size() - headersEndPos; // Number of bytes already read from body
+        while (bodyBytesRead < contentLength) {
+            struct pollfd pfd;
+            pfd.fd = clientSocket;
+            pfd.events = POLLIN;
+
+            int pollResult = poll(&pfd, 1, 1000); // 1 second timeout
+            if (pollResult > 0) {
+                if (pfd.revents & POLLIN) {
+                    bytesRead = recv(clientSocket, buffer, std::min(sizeof(buffer) - 1, contentLength - bodyBytesRead), 0);
+                    if (bytesRead < 0) {
+                        std::cerr << "[ERROR] recv() failed" << std::endl;
+                        return "";
+                    } else if (bytesRead == 0) {
+                        std::cerr << "[ERROR] Connection closed before full body received" << std::endl;
+                        return "";
+                    }
+                    buffer[bytesRead] = '\0';
+                    request.append(buffer, bytesRead);
+                    bodyBytesRead += bytesRead;
+                }
+            } else if (pollResult == 0) {
+                std::cerr << "[ERROR] Poll timeout while reading body" << std::endl;
+                return "";
+            } else {
+                std::cerr << "[ERROR] Poll failed" << std::endl;
+                return "";
+            }
+        }
+    }
+
+    // Debug the full request
+    std::cout << "[DEBUG] Full request: " << request << std::endl;
+
+    // Only access the body if the headers are properly separated and body is present
+    size_t bodyStart = request.find("\r\n\r\n");
+    if (bodyStart != std::string::npos) {
+        std::cout << "[DEBUG] Request body size: " << request.substr(bodyStart + 4).size() << " bytes" << std::endl;
+    } else {
+        std::cerr << "[ERROR] No body found in the request." << std::endl;
+    }
+
+    return request;
 }
 
 std::string webServer::generateSuccessResponse(const std::string& message) {

@@ -3,10 +3,17 @@
 /*                                                        :::      ::::::::   */
 /*   main.cpp                                           :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
+<<<<<<< HEAD
 /*   By: pwojnaro <pwojnaro@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/03/05 15:57:27 by piotr             #+#    #+#             */
 /*   Updated: 2025/03/20 15:03:59 by pwojnaro         ###   ########.fr       */
+=======
+/*   By: eperperi <eperperi@student.42.fr>          +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2025/03/05 15:57:27 by piotr             #+#    #+#             */
+/*   Updated: 2025/03/20 15:50:49 by eperperi         ###   ########.fr       */
+>>>>>>> d91badcc1b9b1c218b2233946f3ff08f2423690d
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -47,7 +54,20 @@ int main(int argc, char** argv)
         try
         {
             parser[j].parse(parser[j]._mainString);
+<<<<<<< HEAD
             parser[j].printCGIConfig();
+=======
+            
+			// if (parser[j].getIndex().empty())
+			// {
+				
+			// }
+			// for (const auto& pair : parser[j].getErrorPages()) {
+			// 	std::cout << "Key: " << pair.first << " | Value: " << pair.second << std::endl;
+			// }
+
+			
+>>>>>>> d91badcc1b9b1c218b2233946f3ff08f2423690d
             std::cout << "Autoindex Configuration for Server " << j << ":\n";
             for (const auto& [location, autoindex] : parser[j]._autoindexConfig)
             {

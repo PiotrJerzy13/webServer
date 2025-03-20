@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   main.cpp                                           :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: piotr <piotr@student.42.fr>                +#+  +:+       +#+        */
+/*   By: pwojnaro <pwojnaro@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/03/05 15:57:27 by piotr             #+#    #+#             */
-/*   Updated: 2025/03/16 15:53:14 by piotr            ###   ########.fr       */
+/*   Updated: 2025/03/20 15:03:59 by pwojnaro         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -47,7 +47,7 @@ int main(int argc, char** argv)
         try
         {
             parser[j].parse(parser[j]._mainString);
-            
+            parser[j].printCGIConfig();
             std::cout << "Autoindex Configuration for Server " << j << ":\n";
             for (const auto& [location, autoindex] : parser[j]._autoindexConfig)
             {
@@ -84,6 +84,21 @@ int main(int argc, char** argv)
             // Set the allowed methods before starting the server
             server->setAllowedMethods(parser[j].getAllowedMethods()); // <-- Add this line
 
+			// Set the CGI configuration before starting the server
+			std::map<std::string, webServer::CGIConfig> webServerCGIConfig;
+			const auto& parserCGIConfig = parser[j].getCGIConfigs();
+
+			for (const auto& [location, config] : parserCGIConfig) {
+				webServer::CGIConfig serverConfig;
+				serverConfig.cgiPass = config.cgiPass;
+				serverConfig.scriptFilename = config.scriptFilename;
+				serverConfig.pathInfo = config.pathInfo;
+				serverConfig.queryString = config.queryString;
+				serverConfig.requestMethod = config.requestMethod;
+				webServerCGIConfig[location] = serverConfig;
+			}
+
+			server->setCGIConfig(webServerCGIConfig);
             // Set the client max body size for each server block
             for (const auto& [serverBlock, serverName] : parser[j].getServerNames()) {
                 size_t maxBodySize = parser[j].getClientMaxBodySize(serverBlock);

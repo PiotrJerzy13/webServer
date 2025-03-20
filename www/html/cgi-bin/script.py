@@ -3,6 +3,13 @@
 import os
 import sys
 
+# Debug: Print environment variables
+print("Content-Type: text/plain")  # Temporarily change to text/plain for debugging
+print()
+print("DEBUG: Environment Variables:")
+for key, value in os.environ.items():
+    print(f"{key}: {value}")
+
 # Read POST data from stdin
 post_data = ""
 if os.environ.get("REQUEST_METHOD") == "POST":
@@ -13,11 +20,9 @@ if os.environ.get("REQUEST_METHOD") == "POST":
     except (ValueError, KeyError):
         post_data = "Error reading POST data"
 
-# Print HTTP headers
+# Print HTML content
 print("Content-Type: text/html")
 print()
-
-# Print HTML content
 print("<html>")
 print("<head><title>CGI Script Works!</title></head>")
 print("<body>")

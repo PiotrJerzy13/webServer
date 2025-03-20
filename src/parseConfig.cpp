@@ -6,7 +6,7 @@
 /*   By: pwojnaro <pwojnaro@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/12 18:29:11 by eleni             #+#    #+#             */
-/*   Updated: 2025/03/20 17:12:07 by pwojnaro         ###   ########.fr       */
+/*   Updated: 2025/03/20 17:21:51 by pwojnaro         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -74,8 +74,8 @@ std::string parseConfig::trimLocation(const std::string& line) {
 // ------------------------------------------------------------------------
 // Configuration Parsing (Server and Location)
 // ------------------------------------------------------------------------
-void parseConfig::splitMaps(std::string& line, int& brackets) 
-{
+
+void parseConfig::splitMaps(std::string& line, int& brackets) {
     if (line.find('{') != std::string::npos) {
         brackets++;
     } else if (line.find('}') != std::string::npos) {
@@ -89,28 +89,28 @@ void parseConfig::splitMaps(std::string& line, int& brackets)
         brackets--;
     }
 
-//     if (line.find("server ") != std::string::npos || line.find("server\t") != std::string::npos) {
-//         _blocks.push("server");
-//         _currentServerBlock = "server" + std::to_string(_serverNames.size() + 1);
-//         std::cout << "DEBUG: Found server block: " << _currentServerBlock << std::endl;
-//         return;
-//     } else if (line.find("location") != std::string::npos) {
-//         if (brackets > 3)
-//             throw SyntaxErrorException();
+    if (line.find("server ") != std::string::npos || line.find("server\t") != std::string::npos) {
+        _blocks.push("server");
+        _currentServerBlock = "server" + std::to_string(_serverNames.size() + 1);
+        std::cout << "DEBUG: Found server block: " << _currentServerBlock << std::endl;
+        return;
+    } else if (line.find("location") != std::string::npos) {
+        if (brackets > 3)
+            throw SyntaxErrorException();
 
-//         _blocks.push("location");
-//         _location = trimLocation(line);
-//         _parsingLocation.insert({_location, std::vector<std::string>()});
-//         std::cout << "DEBUG: Found location block: " << _location << std::endl;
-//         return;
-//     } else if (!_blocks.empty() && _blocks.top() == "server") {
-//         std::cout << "DEBUG: Parsing server directive: " << line << std::endl;
-//         trimServer(line);
-//     } else if (!_blocks.empty() && _blocks.top() == "location") {
-//         std::cout << "DEBUG: Parsing location directive: " << line << std::endl;
-//         fillLocationMap(line, _location);
-//     }
-// }
+        _blocks.push("location");
+        _location = trimLocation(line);
+        _parsingLocation.insert({_location, std::vector<std::string>()});
+        std::cout << "DEBUG: Found location block: " << _location << std::endl;
+        return;
+    } else if (!_blocks.empty() && _blocks.top() == "server") {
+        std::cout << "DEBUG: Parsing server directive: " << line << std::endl;
+        trimServer(line);
+    } else if (!_blocks.empty() && _blocks.top() == "location") {
+        std::cout << "DEBUG: Parsing location directive: " << line << std::endl;
+        fillLocationMap(line, _location);
+    }
+}
 
 void parseConfig::trimServer(const std::string& line) 
 {
@@ -302,13 +302,3 @@ const char* parseConfig::SyntaxErrorException::what() const throw()
 {
     return "Exception: Brackets or ';' is missing";
 }
-
-const std::map<std::string, std::string>& parseConfig::getErrorPages() const
- {
- 	return _errorPages;
- }
- 
- const std::string& parseConfig::getIndex() const
- {
- 	return _index;
- }

@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   parseConfig.cpp                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: piotr <piotr@student.42.fr>                +#+  +:+       +#+        */
+/*   By: eperperi <eperperi@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/12 18:29:11 by eleni             #+#    #+#             */
-/*   Updated: 2025/03/18 10:41:54 by piotr            ###   ########.fr       */
+/*   Updated: 2025/03/20 15:50:21 by eperperi         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -69,7 +69,7 @@ std::string parseConfig::trimLocation(const std::string& line) {
 // Configuration Parsing (Server and Location)
 // ------------------------------------------------------------------------
 void parseConfig::splitMaps(std::string& line, int& brackets) 
-{
+{	
     if (line.find('{') != std::string::npos) {
         brackets++;
     } else if (line.find('}') != std::string::npos) {
@@ -113,13 +113,33 @@ void parseConfig::trimServer(const std::string& line)
         std::string key = trim(trimmedLine.substr(0, pos));
         std::string value = trim(trimmedLine.substr(pos + 1));
 
-        if (key == "server_name") {
+        if (key == "server_name") 
+		{
             _serverNames[_currentServerBlock] = value;
-        } else if (key == "client_max_body_size") {
+        } 
+		else if (key == "client_max_body_size") 
+		{
             parseClientMaxBodySize(value);
-        } else {
+        } 
+		else if (key == "index") 
+		{
+            _index = value;
+        } 
+		else if (key == "error_pages")
+		{
+			std::istringstream errorStream(value);
+			std::string errorCode, errorPath;
+
+			while (errorStream >> errorCode >> errorPath)
+			{
+				_errorPages[errorCode] = "www/html" + errorPath;
+			}
+		}
+		else 
+		{
             _parsingServer.insert({key, value});
         }
+		
     }
 }
 
@@ -235,6 +255,18 @@ const std::map<std::string, parseConfig::CGIConfig>& parseConfig::getCGIConfigs(
 {
     return _cgiConfig;
 }
+
+const std::map<std::string, std::string>& parseConfig::getErrorPages() const
+{
+	return _errorPages;
+}
+
+const std::string& parseConfig::getIndex() const
+{
+	return _index;
+}
+
+
 
 // ------------------------------------------------------------------------
 // Exception Handling

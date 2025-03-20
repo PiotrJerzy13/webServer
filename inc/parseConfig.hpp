@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   parseConfig.hpp                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: piotr <piotr@student.42.fr>                +#+  +:+       +#+        */
+/*   By: eperperi <eperperi@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/12 17:50:48 by eleni             #+#    #+#             */
-/*   Updated: 2025/03/18 10:46:41 by piotr            ###   ########.fr       */
+/*   Updated: 2025/03/20 15:40:11 by eperperi         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -52,7 +52,9 @@ class parseConfig {
         const std::map<std::string, CGIConfig>& getCGIConfigs() const;
         const std::map<std::string, std::string>& getRedirections() const;
         const std::map<std::string, std::string>& getServerNames() const;
+        const std::map<std::string, std::string>& getErrorPages() const;
         const std::map<std::string, std::string>& getRootDirectories() const;
+        const std::string& getIndex() const;
         const std::map<std::string, bool>& getAutoindexConfig() const;
         const parseConfig::CGIConfig& getCGIConfig(const std::string& location) const;
     
@@ -73,11 +75,13 @@ class parseConfig {
         std::string _currentServerBlock;
         std::vector<std::string> _methods;
         std::stack<std::string> _blocks;
-    
+        std::string _index;
+		
         // **Configuration Data Structures**
         std::map<std::string, CGIConfig> _cgiConfig;
         std::map<std::string, size_t> _clientMaxBodySize;
         std::map<std::string, std::string> _serverNames;
+        std::map<std::string, std::string> _errorPages;
         std::map<std::string, std::string> _rootDirectories;
         std::map<std::string, std::string> _aliasDirectories;
         std::map<std::string, std::string> _redirections;

@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   main.cpp                                           :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: piotr <piotr@student.42.fr>                +#+  +:+       +#+        */
+/*   By: eperperi <eperperi@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/03/05 15:57:27 by piotr             #+#    #+#             */
-/*   Updated: 2025/03/16 15:53:14 by piotr            ###   ########.fr       */
+/*   Updated: 2025/03/20 15:50:49 by eperperi         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -48,6 +48,15 @@ int main(int argc, char** argv)
         {
             parser[j].parse(parser[j]._mainString);
             
+			// if (parser[j].getIndex().empty())
+			// {
+				
+			// }
+			// for (const auto& pair : parser[j].getErrorPages()) {
+			// 	std::cout << "Key: " << pair.first << " | Value: " << pair.second << std::endl;
+			// }
+
+			
             std::cout << "Autoindex Configuration for Server " << j << ":\n";
             for (const auto& [location, autoindex] : parser[j]._autoindexConfig)
             {

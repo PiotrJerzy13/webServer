@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HTTPResponse.hpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: piotr <piotr@student.42.fr>                +#+  +:+       +#+        */
+/*   By: pwojnaro <pwojnaro@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/03/07 18:49:43 by pwojnaro          #+#    #+#             */
-/*   Updated: 2025/03/18 10:36:32 by piotr            ###   ########.fr       */
+/*   Updated: 2025/03/21 20:59:19 by pwojnaro         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,6 +27,5 @@ class HTTPResponse {
 		int statusCode;
 		std::string contentType;
 		std::string body;
-	};
+};
 	
-

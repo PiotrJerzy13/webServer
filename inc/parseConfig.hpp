@@ -6,7 +6,7 @@
 /*   By: pwojnaro <pwojnaro@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/12 17:50:48 by eleni             #+#    #+#             */
-/*   Updated: 2025/03/20 17:08:57 by pwojnaro         ###   ########.fr       */
+/*   Updated: 2025/03/21 21:01:39 by pwojnaro         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,10 +18,7 @@
 #include <stack>
 #include <unordered_map>
 #include <vector>
-#include <iostream>
 #include <string>
-#include <iostream>
-#include <fstream>
 #include <map>
 #include "webServer.hpp"
 
@@ -37,24 +34,15 @@ class parseConfig {
 		std::string _mainString;
 	
 		// **Struct for CGI Configuration**
-		struct CGIConfig {
+		struct CGIConfig
+		{
 			std::string cgiPass;
 			std::string scriptFilename;
 			std::string pathInfo;
 			std::string queryString;
 			std::string requestMethod;
 		};
-		void printCGIConfig() const {
-			for (const auto& [location, config] : _cgiConfig) {
-				std::cout << "DEBUG: CGI Configuration for location '" << location << "':\n";
-				std::cout << "  cgiPass: " << config.cgiPass << "\n";
-				std::cout << "  scriptFilename: " << config.scriptFilename << "\n";
-				std::cout << "  pathInfo: " << config.pathInfo << "\n";
-				std::cout << "  queryString: " << config.queryString << "\n";
-				std::cout << "  requestMethod: " << config.requestMethod << "\n";
-			}
-		};
-	
+
 		// **Public Getter Methods**
 		size_t getClientMaxBodySize(const std::string& serverBlock) const;
 		const std::map<std::string, std::vector<std::string>>& getAllowedMethods() const;
@@ -109,6 +97,5 @@ class parseConfig {
 		std::string trimLocation(const std::string& line);
 		std::string trim(const std::string& line);
 		void fillLocationMap(std::string& line, const std::string& location);
-	};
+};
 	
-	// Implementation of parseKeyValue as a member functio

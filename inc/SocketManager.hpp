@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   SocketManager.hpp                                  :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: piotr <piotr@student.42.fr>                +#+  +:+       +#+        */
+/*   By: pwojnaro <pwojnaro@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/03/07 16:04:37 by pwojnaro          #+#    #+#             */
-/*   Updated: 2025/03/18 10:36:13 by piotr            ###   ########.fr       */
+/*   Updated: 2025/03/21 21:02:32 by pwojnaro         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,19 +21,19 @@
 
 class SocketManager {
 public:
-    SocketManager();
-    ~SocketManager();
+	SocketManager();
+	~SocketManager();
 
-    void createSocket(int port);
+	void createSocket(int port);
 	std::optional<int> acceptConnection(int serverFd);
-    void closeSocket(int fd);
+	void closeSocket(int fd);
 	void setNonBlocking(int socketFd);
-    std::vector<pollfd>& getPollFds();
-    std::vector<Socket>& getServerSockets();
+	std::vector<pollfd>& getPollFds();
+	std::vector<Socket>& getServerSockets();
 	std::optional<std::string> isPortAvailable(int port);
 
 private:
-    std::vector<Socket> _serverSockets;
-    std::vector<pollfd> _pollFds;
+	std::vector<Socket> _serverSockets;
+	std::vector<pollfd> _pollFds;
 
 };

@@ -6,7 +6,7 @@
 /*   By: pwojnaro <pwojnaro@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/03/05 20:29:22 by piotr             #+#    #+#             */
-/*   Updated: 2025/03/12 15:34:06 by pwojnaro         ###   ########.fr       */
+/*   Updated: 2025/03/21 20:30:00 by pwojnaro         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -24,7 +24,8 @@ Socket::Socket(int domain, int type, int protocol) : _fd(socket(domain, type, pr
 
 Socket::Socket(int fd) : _fd(fd)
 {
-    if (_fd < 0) {
+    if (_fd < 0) 
+	{
         throw std::runtime_error("Invalid file descriptor");
     }
 }

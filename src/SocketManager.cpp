@@ -6,7 +6,7 @@
 /*   By: pwojnaro <pwojnaro@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/03/07 16:05:11 by pwojnaro          #+#    #+#             */
-/*   Updated: 2025/03/09 16:48:09 by pwojnaro         ###   ########.fr       */
+/*   Updated: 2025/03/21 19:51:00 by pwojnaro         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -56,7 +56,7 @@ void SocketManager::createSocket(int port)
             return;
         }
 
-        if (listen(serverSocket.getFd(), 10) < 0)
+        if (listen(serverSocket.getFd(), 50) < 0)
 		{
             std::cerr << "Error: Could not listen on socket for port " << port << " (" << strerror(errno) << ")" << std::endl;
             return;

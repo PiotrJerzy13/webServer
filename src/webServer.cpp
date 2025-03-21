@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   webServer.cpp                                      :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: pwojnaro <pwojnaro@student.42.fr>          +#+  +:+       +#+        */
+/*   By: anamieta <anamieta@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/16 21:12:30 by anamieta          #+#    #+#             */
-/*   Updated: 2025/03/20 17:13:27 by pwojnaro         ###   ########.fr       */
+/*   Updated: 2025/03/21 19:25:09 by anamieta         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,12 +18,13 @@
 #include "FileUtilis.hpp"
 #include <vector>
 #include <dirent.h>
+#include "CGIHandler.hpp"
 
 volatile sig_atomic_t timeoutOccurred = 0;
 
 webServer::webServer(const std::unordered_multimap<std::string, std::string>& serverConfig,
 	const std::unordered_multimap<std::string, std::vector<std::string>>& locationConfig)
-	: _serverConfig(serverConfig), _locationConfig(locationConfig), _socketManager()
+	: _serverConfig(serverConfig), _locationConfig(locationConfig), _socketManager(), _cgiHandler(serverConfig)
 {
 	std::cout << "[INFO] Initializing web server..." << std::endl;
 
@@ -353,191 +354,185 @@ std::string urlDecode(const std::string& encoded)
 }
 
 std::string webServer::handleRequest(const std::string& fullRequest) {
-	if (fullRequest.empty())
-		return generateErrorResponse(400, "Empty request");
+    if (fullRequest.empty())
+        return generateErrorResponse(400, "Empty request");
 
-	HTTPRequest httpRequest(fullRequest);
-	std::string method = httpRequest.getMethod();
-	std::string rawPath = httpRequest.getPath();
-	std::string decodedPath = urlDecode(rawPath);
+    HTTPRequest httpRequest(fullRequest);
+    std::string method = httpRequest.getMethod();
+    std::string rawPath = httpRequest.getPath();
+    std::string decodedPath = urlDecode(rawPath);
 
-	std::cout << "[DEBUG] Request Path: " << rawPath << "\n";
-	std::cout << "[DEBUG] Decoded Path: " << decodedPath << "\n";
+    std::cout << "[DEBUG] Request Path: " << rawPath << "\n";
+    std::cout << "[DEBUG] Decoded Path: " << decodedPath << "\n";
 
-	bool methodAllowed = false;
-	std::string matchedLocation = "";
+    bool methodAllowed = false;
+    std::string matchedLocation = "";
 
-	// Find the longest matching location for the path
-	for (const auto& [location, allowedMethods] : _allowedMethods) {
-		if (decodedPath.find(location) == 0 && location.length() > matchedLocation.length()) {
-			matchedLocation = location;
-			methodAllowed = (std::find(allowedMethods.begin(), allowedMethods.end(), method) != allowedMethods.end());
-		}
-	}
+    // Find the longest matching location for the path
+    for (const auto& [location, allowedMethods] : _allowedMethods) {
+        if (decodedPath.find(location) == 0 && location.length() > matchedLocation.length()) {
+            matchedLocation = location;
+            methodAllowed = (std::find(allowedMethods.begin(), allowedMethods.end(), method) != allowedMethods.end());
+        }
+    }
 
-	// If no matching location is found, assume the method is allowed (or handle as needed)
-	if (matchedLocation.empty()) {
-		methodAllowed = true; // Default behavior if no location-specific rules are defined
-	}
+    // If no matching location is found, assume the method is allowed (or handle as needed)
+    if (matchedLocation.empty()) {
+        methodAllowed = true; // Default behavior if no location-specific rules are defined
+    }
 
-	// If the method is not allowed, return a 405 Method Not Allowed response
-	if (!methodAllowed) {
-		std::cout << "[DEBUG] Method " << method << " not allowed for path: " << decodedPath << "\n";
-		return generateMethodNotAllowedResponse();
-	}
-	// Handle explicit redirection codes (e.g. /301 or /302 in the URL)
-	if (decodedPath.size() > 4 &&
-		(decodedPath.substr(0, 4) == "/301" || decodedPath.substr(0, 4) == "/302")) {
-		size_t urlStart = decodedPath.find_first_not_of(" \t", 4);
-		if (urlStart != std::string::npos) {
-			std::string targetUrl = decodedPath.substr(urlStart);
-			if (targetUrl.find("http://") != 0 && targetUrl.find("https://") != 0)
-				targetUrl = "http://" + targetUrl;
-			std::string statusCode = decodedPath.substr(1, 3);
-			std::stringstream response;
-			response << "HTTP/1.1 " << statusCode << " Moved\r\n";
-			response << "Location: " << targetUrl << "\r\n";
-			response << "Content-Length: 0\r\n";
-			response << "\r\n";
-			return response.str();
-		}
-	}
+    // If the method is not allowed, return a 405 Method Not Allowed response
+    if (!methodAllowed) {
+        std::cout << "[DEBUG] Method " << method << " not allowed for path: " << decodedPath << "\n";
+        return generateMethodNotAllowedResponse();
+    }
 
-	for (const auto& [location, redirection] : _redirections) {
-		if (rawPath.find(location) == 0 || decodedPath.find(location) == 0) {
-			std::cout << "[DEBUG] Redirection match found for location: " << location << "\n";
-			size_t spacePos = redirection.find_first_of(" \t");
-			if (spacePos != std::string::npos) {
-				std::string statusCode = redirection.substr(0, spacePos);
-				std::string targetUrl = redirection.substr(spacePos + 1);
-				if (targetUrl.find("http://") != 0 && targetUrl.find("https://") != 0)
-					targetUrl = "http://" + targetUrl;
-				std::stringstream response;
-				response << "HTTP/1.1 " << statusCode << " Moved\r\n";
-				response << "Location: " << targetUrl << "\r\n";
-				response << "Content-Length: 0\r\n";
-				response << "\r\n";
-				return response.str();
-			} else {
-				std::cerr << "[ERROR] Invalid redirection format: " << redirection << std::endl;
-			}
-		}
-	}
-	if (rawPath.find("/cgi-bin/") == 0) {
-		// Instead of getting the CGI config but not using it, either remove it or use it
-		// Option 1: Remove the unused variable
-		
-		// Get the query string if present
-		std::string queryString;
-		std::string scriptPath = rawPath;  // This contains the full path with script name
-		size_t queryPos = rawPath.find('?');
-		if (queryPos != std::string::npos) {
-			queryString = rawPath.substr(queryPos + 1);
-			scriptPath = rawPath.substr(0, queryPos);  // Remove query string from script path
-		}
-		
-		// Use the constructed script path
-		return executeCGI(scriptPath, method, queryString, httpRequest.getBody());
-	}
-	// Determine the root directory from _serverConfig, defaulting to "./www"
-	std::string rootDir = "./www"; // Default root directory
-	auto itServer = _serverConfig.find("root");
-	if (itServer != _serverConfig.end()) {
-		rootDir = itServer->second;
-	}
+    // Handle explicit redirection codes (e.g. /301 or /302 in the URL)
+    if (decodedPath.size() > 4 &&
+        (decodedPath.substr(0, 4) == "/301" || decodedPath.substr(0, 4) == "/302")) {
+        size_t urlStart = decodedPath.find_first_not_of(" \t", 4);
+        if (urlStart != std::string::npos) {
+            std::string targetUrl = decodedPath.substr(urlStart);
+            if (targetUrl.find("http://") != 0 && targetUrl.find("https://") != 0)
+                targetUrl = "http://" + targetUrl;
+            std::string statusCode = decodedPath.substr(1, 3);
+            std::stringstream response;
+            response << "HTTP/1.1 " << statusCode << " Moved\r\n";
+            response << "Location: " << targetUrl << "\r\n";
+            response << "Content-Length: 0\r\n";
+            response << "\r\n";
+            return response.str();
+        }
+    }
 
-	// Handle POST requests (uploads and form submissions).
-	if (method == "POST") {
-		std::string contentType = httpRequest.getContentTypeFromHeaders("Content-Type");
-		if (contentType.empty())
-			contentType = "text/plain";
-		std::string serverName = httpRequest.getHeader("Host");
-		if (serverName.empty())
-			serverName = "default";
+    for (const auto& [location, redirection] : _redirections) {
+        if (rawPath.find(location) == 0 || decodedPath.find(location) == 0) {
+            std::cout << "[DEBUG] Redirection match found for location: " << location << "\n";
+            size_t spacePos = redirection.find_first_of(" \t");
+            if (spacePos != std::string::npos) {
+                std::string statusCode = redirection.substr(0, spacePos);
+                std::string targetUrl = redirection.substr(spacePos + 1);
+                if (targetUrl.find("http://") != 0 && targetUrl.find("https://") != 0)
+                    targetUrl = "http://" + targetUrl;
+                std::stringstream response;
+                response << "HTTP/1.1 " << statusCode << " Moved\r\n";
+                response << "Location: " << targetUrl << "\r\n";
+                response << "Content-Length: 0\r\n";
+                response << "\r\n";
+                return response.str();
+            } else {
+                std::cerr << "[ERROR] Invalid redirection format: " << redirection << std::endl;
+            }
+        }
+    }
 
-		// Special handling for upload paths.
-		if (rawPath == "/upload" || rawPath.find("/upload/") == 0) {
-			// Check if it's a multipart/form-data request
-			if (contentType.find("multipart/form-data") != std::string::npos) {
-				// Extract the boundary from the Content-Type header
-				size_t boundaryPos = contentType.find("boundary=");
-				if (boundaryPos == std::string::npos) {
-					return generateErrorResponse(400, "Missing boundary in Content-Type");
-				}
-				std::string boundary = contentType.substr(boundaryPos + 9);
-				boundary = "--" + boundary;
+    // Check if the request path matches a CGI location
+    if (rawPath.find("/cgi-bin/") == 0) {
+        std::string scriptPath = rawPath.substr(0, rawPath.find('?'));
+        std::string queryString = rawPath.substr(rawPath.find('?') + 1);
+        std::string requestBody = httpRequest.getBody();
+        return _cgiHandler.executeCGI(scriptPath, method, queryString, requestBody);
+    }
 
-				// Get the request body
-				std::string body = httpRequest.getBody();
+    // Determine the root directory from _serverConfig, defaulting to "./www"
+    std::string rootDir = "./www"; // Default root directory
+    auto itServer = _serverConfig.find("root");
+    if (itServer != _serverConfig.end()) {
+        rootDir = itServer->second;
+    }
 
-				// Check the Content-Length before processing
-				std::string contentLengthStr = httpRequest.getHeader("Content-Length");
-				// Process the upload if size check passes
-				return generateSuccessResponse("Files uploaded successfully");
-				}
-			}
+    // Handle POST requests (uploads and form submissions).
+    if (method == "POST") {
+        std::string contentType = httpRequest.getContentTypeFromHeaders("Content-Type");
+        if (contentType.empty())
+            contentType = "text/plain";
+        std::string serverName = httpRequest.getHeader("Host");
+        if (serverName.empty())
+            serverName = "default";
 
-		// For all other POST requests, delegate to generatePostResponse
-		return generatePostResponse(httpRequest.getBody(), contentType, serverName);
-	}
+        // Special handling for upload paths.
+        if (rawPath == "/upload" || rawPath.find("/upload/") == 0) {
+            // Check if it's a multipart/form-data request
+            if (contentType.find("multipart/form-data") != std::string::npos) {
+                // Extract the boundary from the Content-Type header
+                size_t boundaryPos = contentType.find("boundary=");
+                if (boundaryPos == std::string::npos) {
+                    return generateErrorResponse(400, "Missing boundary in Content-Type");
+                }
+                std::string boundary = contentType.substr(boundaryPos + 9);
+                boundary = "--" + boundary;
 
-	// Resolve the file path for non-POST requests.
-	std::string filePath = resolveFilePath(decodedPath, rootDir);
-	if (filePath.empty())
-		return generateErrorResponse(400, "Invalid path");
+                // Get the request body
+                std::string body = httpRequest.getBody();
 
-	std::cout << "[DEBUG] Resolved File Path: " << filePath << "\n";
+                // Check the Content-Length before processing
+                std::string contentLengthStr = httpRequest.getHeader("Content-Length");
+                // Process the upload if size check passes
+                return generateSuccessResponse("Files uploaded successfully");
+            }
+        }
 
-	// Check if the resolved path is a directory.
-	struct stat st;
-	if (stat(filePath.c_str(), &st) == 0 && S_ISDIR(st.st_mode)) {
-		std::cout << "[DEBUG] Path is a directory\n";
+        // For all other POST requests, delegate to generatePostResponse
+        return generatePostResponse(httpRequest.getBody(), contentType, serverName);
+    }
 
-		// Check autoindex configuration.
-		bool autoindexEnabled = false;
-		std::string matchedLocation = "";
-		std::cout << "[DEBUG] Autoindex Configuration:\n";
-		for (const auto& [loc, enabled] : _autoindexConfig) {
-			std::cout << "  - Location: '" << loc << "', Autoindex: "
-					<< (enabled ? "on" : "off") << "\n";
-		}
-		for (const auto& locationPair : _autoindexConfig) {
-			const std::string& loc = locationPair.first;
-			if (!loc.empty() && rawPath.find(loc) == 0) {
-				if (loc.length() > matchedLocation.length()) {
-					matchedLocation = loc;
-					autoindexEnabled = locationPair.second;
-				}
-			}
-		}
-		std::cout << "[DEBUG] Matched Location: " << matchedLocation
-				<< ", Autoindex: " << (autoindexEnabled ? "on" : "off") << "\n";
+    // Resolve the file path for non-POST requests.
+    std::string filePath = resolveFilePath(decodedPath, rootDir);
+    if (filePath.empty())
+        return generateErrorResponse(400, "Invalid path");
 
-		if (autoindexEnabled) {
-			return generateDirectoryListing(filePath, decodedPath);
-		} else {
-			// Attempt to serve index.html.
-			std::string indexPath = filePath;
-			if (indexPath.back() != '/')
-				indexPath += "/";
-			indexPath += "index.html";
-			if (access(indexPath.c_str(), F_OK) == 0) {
-				return generateGetResponse(indexPath);
-			} else {
-				return generateErrorResponse(403, "Directory listing is disabled, and no index file found.");
-			}
-		}
-	}
+    std::cout << "[DEBUG] Resolved File Path: " << filePath << "\n";
 
-	// Handle specific HTTP methods
-	if (method == "GET") {
-		return generateGetResponse(filePath);
-	} else if (method == "DELETE") {
-		return generateDeleteResponse(filePath);
-	} else {
-		// Handle unsupported methods
-		return generateMethodNotAllowedResponse();
-	}
+    // Check if the resolved path is a directory.
+    struct stat st;
+    if (stat(filePath.c_str(), &st) == 0 && S_ISDIR(st.st_mode)) {
+        std::cout << "[DEBUG] Path is a directory\n";
+
+        // Check autoindex configuration.
+        bool autoindexEnabled = false;
+        std::string matchedLocation = "";
+        std::cout << "[DEBUG] Autoindex Configuration:\n";
+        for (const auto& [loc, enabled] : _autoindexConfig) {
+            std::cout << "  - Location: '" << loc << "', Autoindex: "
+                    << (enabled ? "on" : "off") << "\n";
+        }
+        for (const auto& locationPair : _autoindexConfig) {
+            const std::string& loc = locationPair.first;
+            if (!loc.empty() && rawPath.find(loc) == 0) {
+                if (loc.length() > matchedLocation.length()) {
+                    matchedLocation = loc;
+                    autoindexEnabled = locationPair.second;
+                }
+            }
+        }
+        std::cout << "[DEBUG] Matched Location: " << matchedLocation
+                << ", Autoindex: " << (autoindexEnabled ? "on" : "off") << "\n";
+
+        if (autoindexEnabled) {
+            return generateDirectoryListing(filePath, decodedPath);
+        } else {
+            // Attempt to serve index.html.
+            std::string indexPath = filePath;
+            if (indexPath.back() != '/')
+                indexPath += "/";
+            indexPath += "index.html";
+            if (access(indexPath.c_str(), F_OK) == 0) {
+                return generateGetResponse(indexPath);
+            } else {
+                return generateErrorResponse(403, "Directory listing is disabled, and no index file found.");
+            }
+        }
+    }
+
+    // Handle specific HTTP methods
+    if (method == "GET") {
+        return generateGetResponse(filePath);
+    } else if (method == "DELETE") {
+        return generateDeleteResponse(filePath);
+    } else {
+        // Handle unsupported methods
+        return generateMethodNotAllowedResponse();
+    }
 }
 
 std::string webServer::generateGetResponse(const std::string& filePath)
@@ -796,771 +791,6 @@ void handleTimeout(int signal) {
 	}
 }
 
-// std::string webServer::executeCGI(const std::string& scriptPath, const std::string& method,
-// 	const std::string& queryString, const std::string& requestBody)
-// {
-// 	// Set up the timeout handler
-// 	signal(SIGALRM, handleTimeout);
-// 	timeoutOccurred = 0;
-
-// 	// Set a timeout for the CGI script
-// 	alarm(5);
-
-// 	// Extract location from script path (assuming location is the directory part)
-// 	std::string location = scriptPath.substr(0, scriptPath.rfind('/'));
-// 	if (location.empty()) location = "/";
-
-// 	// Get CGI configuration for this location
-// 	const CGIConfig& cgiConfig = getCGIConfig(location);
-
-// 	// Remove any query string from the script path
-// 	std::string cleanScriptPath = scriptPath.substr(0, scriptPath.find('?'));
-
-// 	int pipeToChild[2], pipeFromChild[2];
-// 	if (pipe(pipeToChild) == -1 || pipe(pipeFromChild) == -1)
-// 		return generateErrorResponse(500, "Failed to create pipes");
-
-// 	pid_t pid = fork();
-// 	if (pid == -1)
-// 		return generateErrorResponse(500, "Failed to fork");
-
-// 	if (pid == 0) { // Child process.
-// 		close(pipeToChild[1]);  // Close unused write end.
-// 		close(pipeFromChild[0]); // Close unused read end.
-
-// 		if (dup2(pipeToChild[0], STDIN_FILENO) == -1 ||
-// 			dup2(pipeFromChild[1], STDOUT_FILENO) == -1) {
-// 			std::cerr << "Failed to redirect stdin/stdout" << std::endl;
-// 			exit(1);
-// 		}
-
-// 		// Set CGI environment variables using the configuration
-// 		// Use configured request method or fallback to the provided method
-// 		std::string requestMethodEnv = cgiConfig.requestMethod.empty() ?
-// 									 method : cgiConfig.requestMethod;
-// 		// Replace variables if present
-// 		if (requestMethodEnv.find("$request_method") != std::string::npos) {
-// 			requestMethodEnv = method;
-// 		}
-// 		setenv("REQUEST_METHOD", requestMethodEnv.c_str(), 1);
-
-// 		// Use configured query string or fallback to the provided one
-// 		std::string queryStringEnv = cgiConfig.queryString.empty() ?
-// 								   queryString : cgiConfig.queryString;
-// 		// Replace variables if present
-// 		if (queryStringEnv.find("$query_string") != std::string::npos) {
-// 			queryStringEnv = queryString;
-// 		}
-// 		setenv("QUERY_STRING", queryStringEnv.c_str(), 1);
-
-// 		// Set content length
-// 		setenv("CONTENT_LENGTH", std::to_string(requestBody.size()).c_str(), 1);
-
-// 		// Determine content type from request or use a reasonable default
-// 		// Ideally this would come from the HTTP request headers
-// 		std::string contentType = "application/x-www-form-urlencoded"; // Default, but should be passed from request
-// 		setenv("CONTENT_TYPE", contentType.c_str(), 1);
-
-// 		// Use script filename from config or default to the clean script path
-// 		std::string scriptFilename = cgiConfig.scriptFilename.empty() ?
-// 									 cleanScriptPath : cgiConfig.scriptFilename;
-// 		// Replace any variables in the template
-// 		size_t pos;
-// 		if ((pos = scriptFilename.find("$fastcgi_script_name")) != std::string::npos) {
-// 			std::string scriptName = cleanScriptPath.substr(cleanScriptPath.rfind('/') + 1);
-// 			scriptFilename.replace(pos, 20, scriptName);
-// 		}
-// 		setenv("SCRIPT_FILENAME", scriptFilename.c_str(), 1);
-
-// 		// Similar replacement for PATH_INFO
-// 		std::string pathInfo = cgiConfig.pathInfo.empty() ?
-// 							   cleanScriptPath : cgiConfig.pathInfo;
-// 		if ((pos = pathInfo.find("$fastcgi_script_name")) != std::string::npos) {
-// 			std::string scriptName = cleanScriptPath.substr(cleanScriptPath.rfind('/') + 1);
-// 			pathInfo.replace(pos, 20, scriptName);
-// 		}
-// 		setenv("PATH_INFO", pathInfo.c_str(), 1);
-
-// 		// Use the configured CGI interpreter path, or use a server-wide default
-// 		// This should be a configurable default instead of hardcoded
-// 		std::string interpreter = cgiConfig.cgiPass;
-// 		if (interpreter.empty()) {
-// 			// Look for a server-wide default in the server configuration
-// 			auto it = _serverConfig.find("default_cgi_interpreter");
-// 			if (it != _serverConfig.end()) {
-// 				interpreter = it->second;
-// 			} else {
-// 				// Last resort fallback
-// 				interpreter = "/usr/bin/python3";
-// 			}
-// 		}
-
-// 		// Extract the interpreter name from the path
-// 		std::string interpreterName = interpreter.substr(interpreter.rfind('/') + 1);
-
-// 		execlp(interpreter.c_str(), interpreterName.c_str(), cleanScriptPath.c_str(), nullptr);
-
-// 		// If execlp returns, an error occurred.
-// 		std::cerr << "Failed to execute CGI script: " << cleanScriptPath
-// 				  << " (Error: " << strerror(errno) << ")" << std::endl;
-// 		exit(1);
-// 	}
-
-// 	// Parent process
-// 	close(pipeToChild[0]);
-// 	close(pipeFromChild[1]);
-
-// 	if (method == "POST" && !requestBody.empty())
-// 		write(pipeToChild[1], requestBody.c_str(), requestBody.size());
-// 	close(pipeToChild[1]);
-
-// 	std::string cgiOutput;
-// 	char buffer[4096];
-// 	fd_set readSet;
-// 	struct timeval timeout;
-
-// 	// Set a timeout for reading from the pipe (e.g., 5 seconds)
-// 	timeout.tv_sec = 5;
-// 	timeout.tv_usec = 0;
-
-// 	while (true) {
-// 		FD_ZERO(&readSet);
-// 		FD_SET(pipeFromChild[0], &readSet);
-
-// 		int selectResult = select(pipeFromChild[0] + 1, &readSet, nullptr, nullptr, &timeout);
-// 		if (selectResult < 0) {
-// 			std::cerr << "select() error" << std::endl;
-// 			break;
-// 		} else if (selectResult == 0) {
-// 			// Timeout occurred while waiting for data
-// 			std::cerr << "Timeout while reading CGI output" << std::endl;
-// 			break;
-// 		}
-
-// 		if (FD_ISSET(pipeFromChild[0], &readSet)) {
-// 			ssize_t bytesRead = read(pipeFromChild[0], buffer, sizeof(buffer));
-// 			if (bytesRead > 0)
-// 				cgiOutput.append(buffer, bytesRead);
-// 			else if (bytesRead == 0)
-// 				break; // EOF.
-// 			else {
-// 				std::cerr << "read() error" << std::endl;
-// 				break;
-// 			}
-// 		}
-// 	}
-// 	close(pipeFromChild[0]);
-
-// 	// Check if a timeout occurred
-// 	if (timeoutOccurred) {
-// 		std::cerr << "CGI script timed out" << std::endl;
-// 		kill(pid, SIGKILL); // Terminate the child process
-// 		waitpid(pid, nullptr, 0); // Clean up the child process
-// 		return generateErrorResponse(504, "Gateway Timeout");
-// 	}
-
-// 	int status;
-// 	waitpid(pid, &status, 0);
-
-// 	if (WIFEXITED(status) && WEXITSTATUS(status) == 0) {
-// 		// Check if the CGI script already provided HTTP headers
-// 		if (cgiOutput.find("HTTP/1.") != 0) {
-// 			// Use configured HTTP version or default to 1.1
-// 			std::string httpVersion = "HTTP/1.1";
-// 			auto it = _serverConfig.find("http_version");
-// 			if (it != _serverConfig.end()) {
-// 				httpVersion = it->second;
-// 			}
-
-// 			std::string headers = httpVersion + " 200 OK\r\n";
-
-// 			// If there are no headers in the CGI output, add some defaults
-// 			if (cgiOutput.find("\r\n\r\n") == std::string::npos) {
-// 				// Look for a default content type in server config or use text/html
-// 				std::string defaultContentType = "text/html";
-// 				auto it = _serverConfig.find("default_cgi_content_type");
-// 				if (it != _serverConfig.end()) {
-// 					defaultContentType = it->second;
-// 				}
-
-// 				headers += "Content-Type: " + defaultContentType + "\r\n";
-// 				headers += "Content-Length: " + std::to_string(cgiOutput.size()) + "\r\n\r\n";
-// 			}
-// 			cgiOutput = headers + cgiOutput;
-// 		}
-// 		return cgiOutput;
-// 	}
-// 	return generateErrorResponse(500, "CGI script failed");
-// }
-
-// std::string webServer::executeCGI(const std::string& scriptPath, const std::string& method,
-// 	const std::string& queryString, const std::string& requestBody)
-// {
-// // Debug: Print input parameters
-// std::cout << "DEBUG: executeCGI called with parameters:" << std::endl;
-// std::cout << "  scriptPath: " << scriptPath << std::endl;
-// std::cout << "  method: " << method << std::endl;
-// std::cout << "  queryString: " << queryString << std::endl;
-// std::cout << "  requestBody size: " << requestBody.size() << std::endl;
-
-// // Set up the timeout handler
-// signal(SIGALRM, handleTimeout);
-// timeoutOccurred = 0;
-
-// // Set a timeout for the CGI script
-// alarm(5);
-// std::cout << "DEBUG: Timeout set to 5 seconds for CGI execution." << std::endl;
-
-// // Extract location from script path (assuming location is the directory part)
-// std::string location = scriptPath.substr(0, scriptPath.rfind('/'));
-// if (location.empty()) location = "/";
-// std::cout << "DEBUG: Extracted location: " << location << std::endl;
-
-// // Get CGI configuration for this location
-// const CGIConfig& cgiConfig = getCGIConfig(location);
-// std::cout << "DEBUG: Retrieved CGIConfig for location '" << location << "':" << std::endl;
-// std::cout << "  cgiPass: " << cgiConfig.cgiPass << std::endl;
-// std::cout << "  scriptFilename: " << cgiConfig.scriptFilename << std::endl;
-// std::cout << "  pathInfo: " << cgiConfig.pathInfo << std::endl;
-// std::cout << "  queryString: " << cgiConfig.queryString << std::endl;
-// std::cout << "  requestMethod: " << cgiConfig.requestMethod << std::endl;
-
-// // Remove any query string from the script path
-// std::string cleanScriptPath = scriptPath.substr(0, scriptPath.find('?'));
-// std::cout << "DEBUG: Clean script path (without query string): " << cleanScriptPath << std::endl;
-
-// // Create pipes for communication with the child process
-// int pipeToChild[2], pipeFromChild[2];
-// if (pipe(pipeToChild) == -1 || pipe(pipeFromChild) == -1) {
-// std::cerr << "DEBUG: Failed to create pipes." << std::endl;
-// return generateErrorResponse(500, "Failed to create pipes");
-// }
-// std::cout << "DEBUG: Pipes created successfully." << std::endl;
-
-// // Fork the process
-// pid_t pid = fork();
-// if (pid == -1) {
-// std::cerr << "DEBUG: Failed to fork." << std::endl;
-// return generateErrorResponse(500, "Failed to fork");
-// }
-
-// if (pid == 0) { // Child process
-// std::cout << "DEBUG: Child process started." << std::endl;
-
-// // Close unused pipe ends
-// close(pipeToChild[1]);  // Close unused write end.
-// close(pipeFromChild[0]); // Close unused read end.
-
-// // Redirect stdin and stdout
-// if (dup2(pipeToChild[0], STDIN_FILENO) == -1 ||
-// dup2(pipeFromChild[1], STDOUT_FILENO) == -1) {
-// std::cerr << "DEBUG: Failed to redirect stdin/stdout." << std::endl;
-// exit(1);
-// }
-// std::cout << "DEBUG: stdin and stdout redirected successfully." << std::endl;
-
-// // Set CGI environment variables
-// std::string requestMethodEnv = cgiConfig.requestMethod.empty() ? method : cgiConfig.requestMethod;
-// if (requestMethodEnv.find("$request_method") != std::string::npos) {
-// requestMethodEnv = method;
-// }
-// setenv("REQUEST_METHOD", requestMethodEnv.c_str(), 1);
-// std::cout << "DEBUG: Set REQUEST_METHOD: " << requestMethodEnv << std::endl;
-
-// std::string queryStringEnv = cgiConfig.queryString.empty() ? queryString : cgiConfig.queryString;
-// if (queryStringEnv.find("$query_string") != std::string::npos) {
-// queryStringEnv = queryString;
-// }
-// setenv("QUERY_STRING", queryStringEnv.c_str(), 1);
-// std::cout << "DEBUG: Set QUERY_STRING: " << queryStringEnv << std::endl;
-
-// setenv("CONTENT_LENGTH", std::to_string(requestBody.size()).c_str(), 1);
-// std::cout << "DEBUG: Set CONTENT_LENGTH: " << requestBody.size() << std::endl;
-
-// std::string contentType = "application/x-www-form-urlencoded"; // Default
-// setenv("CONTENT_TYPE", contentType.c_str(), 1);
-// std::cout << "DEBUG: Set CONTENT_TYPE: " << contentType << std::endl;
-
-// std::string scriptFilename = cgiConfig.scriptFilename.empty() ? cleanScriptPath : cgiConfig.scriptFilename;
-// size_t pos;
-// if ((pos = scriptFilename.find("$fastcgi_script_name")) != std::string::npos) {
-// std::string scriptName = cleanScriptPath.substr(cleanScriptPath.rfind('/') + 1);
-// scriptFilename.replace(pos, 20, scriptName);
-// }
-// setenv("SCRIPT_FILENAME", scriptFilename.c_str(), 1);
-// std::cout << "DEBUG: Set SCRIPT_FILENAME: " << scriptFilename << std::endl;
-
-// std::string pathInfo = cgiConfig.pathInfo.empty() ? cleanScriptPath : cgiConfig.pathInfo;
-// if ((pos = pathInfo.find("$fastcgi_script_name")) != std::string::npos) {
-// std::string scriptName = cleanScriptPath.substr(cleanScriptPath.rfind('/') + 1);
-// pathInfo.replace(pos, 20, scriptName);
-// }
-// setenv("PATH_INFO", pathInfo.c_str(), 1);
-// std::cout << "DEBUG: Set PATH_INFO: " << pathInfo << std::endl;
-
-// // Determine the CGI interpreter
-// std::string interpreter = cgiConfig.cgiPass;
-// if (interpreter.empty()) {
-// auto it = _serverConfig.find("default_cgi_interpreter");
-// if (it != _serverConfig.end()) {
-// interpreter = it->second;
-// } else {
-// interpreter = "/usr/bin/python3"; // Fallback
-// }
-// }
-// std::cout << "DEBUG: Using interpreter: " << interpreter << std::endl;
-
-// // Extract the interpreter name from the path
-// std::string interpreterName = interpreter.substr(interpreter.rfind('/') + 1);
-
-// // Execute the CGI script
-// execlp(interpreter.c_str(), interpreterName.c_str(), cleanScriptPath.c_str(), nullptr);
-
-// // If execlp returns, an error occurred
-// std::cerr << "DEBUG: Failed to execute CGI script: " << cleanScriptPath
-// << " (Error: " << strerror(errno) << ")" << std::endl;
-// exit(1);
-// }
-
-// // Parent process
-// std::cout << "DEBUG: Parent process continuing." << std::endl;
-// close(pipeToChild[0]);
-// close(pipeFromChild[1]);
-
-// // Write request body to the child process (for POST requests)
-// if (method == "POST" && !requestBody.empty()) {
-// std::cout << "DEBUG: Writing request body to child process." << std::endl;
-// write(pipeToChild[1], requestBody.c_str(), requestBody.size());
-// }
-// close(pipeToChild[1]);
-
-// // Read output from the child process
-// std::string cgiOutput;
-// char buffer[4096];
-// fd_set readSet;
-// struct timeval timeout;
-
-// // Set a timeout for reading from the pipe
-// timeout.tv_sec = 5;
-// timeout.tv_usec = 0;
-
-// while (true) {
-// FD_ZERO(&readSet);
-// FD_SET(pipeFromChild[0], &readSet);
-
-// int selectResult = select(pipeFromChild[0] + 1, &readSet, nullptr, nullptr, &timeout);
-// if (selectResult < 0) {
-// std::cerr << "DEBUG: select() error." << std::endl;
-// break;
-// } else if (selectResult == 0) {
-// std::cerr << "DEBUG: Timeout while reading CGI output." << std::endl;
-// break;
-// }
-
-// if (FD_ISSET(pipeFromChild[0], &readSet)) {
-// ssize_t bytesRead = read(pipeFromChild[0], buffer, sizeof(buffer));
-// if (bytesRead > 0) {
-// cgiOutput.append(buffer, bytesRead);
-// } else if (bytesRead == 0) {
-// std::cout << "DEBUG: EOF reached while reading CGI output." << std::endl;
-// break; // EOF
-// } else {
-// std::cerr << "DEBUG: read() error." << std::endl;
-// break;
-// }
-// }
-// }
-// close(pipeFromChild[0]);
-
-// // Check if a timeout occurred
-// if (timeoutOccurred) {
-// std::cerr << "DEBUG: CGI script timed out." << std::endl;
-// kill(pid, SIGKILL); // Terminate the child process
-// waitpid(pid, nullptr, 0); // Clean up the child process
-// return generateErrorResponse(504, "Gateway Timeout");
-// }
-
-// // Wait for the child process to exit
-// int status;
-// waitpid(pid, &status, 0);
-
-// if (WIFEXITED(status) && WEXITSTATUS(status) == 0) {
-// std::cout << "DEBUG: CGI script executed successfully." << std::endl;
-
-// // Check if the CGI script already provided HTTP headers
-// if (cgiOutput.find("HTTP/1.") != 0) {
-// std::cout << "DEBUG: Adding default HTTP headers to CGI output." << std::endl;
-
-// // Use configured HTTP version or default to 1.1
-// std::string httpVersion = "HTTP/1.1";
-// auto it = _serverConfig.find("http_version");
-// if (it != _serverConfig.end()) {
-// httpVersion = it->second;
-// }
-
-// std::string headers = httpVersion + " 200 OK\r\n";
-
-// // If there are no headers in the CGI output, add some defaults
-// if (cgiOutput.find("\r\n\r\n") == std::string::npos) {
-// std::string defaultContentType = "text/html";
-// auto it = _serverConfig.find("default_cgi_content_type");
-// if (it != _serverConfig.end()) {
-// defaultContentType = it->second;
-// }
-
-// headers += "Content-Type: " + defaultContentType + "\r\n";
-// headers += "Content-Length: " + std::to_string(cgiOutput.size()) + "\r\n\r\n";
-// }
-// cgiOutput = headers + cgiOutput;
-// }
-// return cgiOutput;
-// }
-
-// std::cerr << "DEBUG: CGI script failed with status: " << WEXITSTATUS(status) << std::endl;
-// return generateErrorResponse(500, "CGI script failed");
-// }
-
-std::string webServer::executeCGI(const std::string& scriptPath, const std::string& method,
-	const std::string& queryString, const std::string& requestBody)
-{
-    // Debug: Print input parameters
-    std::cout << "DEBUG: executeCGI called with parameters:" << std::endl;
-    std::cout << "  scriptPath: " << scriptPath << std::endl;
-    std::cout << "  method: " << method << std::endl;
-    std::cout << "  queryString: " << queryString << std::endl;
-    std::cout << "  requestBody size: " << requestBody.size() << std::endl;
-
-    // Set up the timeout handler
-    signal(SIGALRM, handleTimeout);
-    timeoutOccurred = 0;
-
-    // Set a timeout for the CGI script
-    alarm(5);
-    std::cout << "DEBUG: Timeout set to 5 seconds for CGI execution." << std::endl;
-
-    // Extract location from script path (assuming location is the directory part)
-    std::string location = scriptPath.substr(0, scriptPath.rfind('/'));
-    if (location.empty()) location = "/";
-    std::cout << "DEBUG: Extracted location: " << location << std::endl;
-
-    // Get CGI configuration for this location
-    const CGIConfig& cgiConfig = getCGIConfig(location);
-    std::cout << "DEBUG: Retrieved CGIConfig for location '" << location << "':" << std::endl;
-    std::cout << "  cgiPass: " << cgiConfig.cgiPass << std::endl;
-    std::cout << "  scriptFilename: " << cgiConfig.scriptFilename << std::endl;
-    std::cout << "  pathInfo: " << cgiConfig.pathInfo << std::endl;
-    std::cout << "  queryString: " << cgiConfig.queryString << std::endl;
-    std::cout << "  requestMethod: " << cgiConfig.requestMethod << std::endl;
-
-    // Remove any query string from the script path
-    std::string cleanScriptPath = scriptPath.substr(0, scriptPath.find('?'));
-    std::cout << "DEBUG: Clean script path (without query string): " << cleanScriptPath << std::endl;
-
-    // Get the root directory from server config
-    std::string rootDir = "./www";  // Default root directory
-    auto itRoot = _serverConfig.find("root");
-    if (itRoot != _serverConfig.end()) {
-        rootDir = itRoot->second;
-    }
-    std::cout << "DEBUG: Root directory: " << rootDir << std::endl;
-
-    // Create pipes for communication with the child process
-    int pipeToChild[2], pipeFromChild[2];
-    if (pipe(pipeToChild) == -1 || pipe(pipeFromChild) == -1) {
-        std::cerr << "DEBUG: Failed to create pipes." << std::endl;
-        return generateErrorResponse(500, "Failed to create pipes");
-    }
-    std::cout << "DEBUG: Pipes created successfully." << std::endl;
-
-    // Fork the process
-    pid_t pid = fork();
-    if (pid == -1) {
-        std::cerr << "DEBUG: Failed to fork." << std::endl;
-        return generateErrorResponse(500, "Failed to fork");
-    }
-
-    if (pid == 0) { // Child process
-        std::cout << "DEBUG: Child process started." << std::endl;
-
-        // Close unused pipe ends
-        close(pipeToChild[1]);  // Close unused write end.
-        close(pipeFromChild[0]); // Close unused read end.
-
-        // Redirect stdin and stdout
-        if (dup2(pipeToChild[0], STDIN_FILENO) == -1 ||
-            dup2(pipeFromChild[1], STDOUT_FILENO) == -1) {
-            std::cerr << "DEBUG: Failed to redirect stdin/stdout." << std::endl;
-            exit(1);
-        }
-        std::cout << "DEBUG: stdin and stdout redirected successfully." << std::endl;
-
-        // Set CGI environment variables
-        std::string requestMethodEnv = cgiConfig.requestMethod.empty() ? method : cgiConfig.requestMethod;
-        if (requestMethodEnv.find("$request_method") != std::string::npos) {
-            requestMethodEnv = method;
-        }
-        setenv("REQUEST_METHOD", requestMethodEnv.c_str(), 1);
-        std::cout << "DEBUG: Set REQUEST_METHOD: " << requestMethodEnv << std::endl;
-
-        std::string queryStringEnv = cgiConfig.queryString.empty() ? queryString : cgiConfig.queryString;
-        if (queryStringEnv.find("$query_string") != std::string::npos) {
-            queryStringEnv = queryString;
-        }
-        setenv("QUERY_STRING", queryStringEnv.c_str(), 1);
-        std::cout << "DEBUG: Set QUERY_STRING: " << queryStringEnv << std::endl;
-
-        setenv("CONTENT_LENGTH", std::to_string(requestBody.size()).c_str(), 1);
-        std::cout << "DEBUG: Set CONTENT_LENGTH: " << requestBody.size() << std::endl;
-
-        std::string contentType = "application/x-www-form-urlencoded"; // Default
-        setenv("CONTENT_TYPE", contentType.c_str(), 1);
-        std::cout << "DEBUG: Set CONTENT_TYPE: " << contentType << std::endl;
-
-        // Construct the full path to the script
-        std::string scriptFilename = cgiConfig.scriptFilename.empty() ? cleanScriptPath : cgiConfig.scriptFilename;
-        size_t pos;
-        if ((pos = scriptFilename.find("$fastcgi_script_name")) != std::string::npos) {
-            std::string scriptName = cleanScriptPath.substr(cleanScriptPath.rfind('/') + 1);
-            scriptFilename.replace(pos, 20, scriptName);
-        }
-
-        // Check if the script path is relative (doesn't start with '/')
-        if (!scriptFilename.empty() && scriptFilename[0] != '/') {
-            // Prepend the server's root directory
-            scriptFilename = rootDir + "/" + scriptFilename;
-        } else {
-            // If it's an absolute path, ensure it starts with the root directory
-            scriptFilename = rootDir + scriptFilename;
-        }
-
-        // Remove any double slashes
-        while ((pos = scriptFilename.find("//")) != std::string::npos) {
-            scriptFilename.replace(pos, 2, "/");
-        }
-
-        setenv("SCRIPT_FILENAME", scriptFilename.c_str(), 1);
-        std::cout << "DEBUG: Set SCRIPT_FILENAME: " << scriptFilename << std::endl;
-
-        std::string pathInfo = cgiConfig.pathInfo.empty() ? cleanScriptPath : cgiConfig.pathInfo;
-        if ((pos = pathInfo.find("$fastcgi_script_name")) != std::string::npos) {
-            std::string scriptName = cleanScriptPath.substr(cleanScriptPath.rfind('/') + 1);
-            pathInfo.replace(pos, 20, scriptName);
-        }
-        setenv("PATH_INFO", pathInfo.c_str(), 1);
-        std::cout << "DEBUG: Set PATH_INFO: " << pathInfo << std::endl;
-
-        // Determine the CGI interpreter
-        std::string interpreter = cgiConfig.cgiPass;
-        if (interpreter.empty()) {
-            auto it = _serverConfig.find("default_cgi_interpreter");
-            if (it != _serverConfig.end()) {
-                interpreter = it->second;
-            } else {
-                interpreter = "/usr/bin/python3"; // Fallback
-            }
-        }
-        std::cout << "DEBUG: Using interpreter: " << interpreter << std::endl;
-
-        // Extract the interpreter name from the path
-        std::string interpreterName = interpreter.substr(interpreter.rfind('/') + 1);
-
-        // Execute the CGI script
-        execlp(interpreter.c_str(), interpreterName.c_str(), scriptFilename.c_str(), nullptr);
-
-        // If execlp returns, an error occurred
-        std::cerr << "DEBUG: Failed to execute CGI script: " << scriptFilename
-                << " (Error: " << strerror(errno) << ")" << std::endl;
-        exit(1);
-    }
-
-    // Parent process
-//     std::cout << "DEBUG: Parent process continuing." << std::endl;
-//     close(pipeToChild[0]);
-//     close(pipeFromChild[1]);
-
-//     // Write request body to the child process (for POST requests)
-//     if (method == "POST" && !requestBody.empty()) {
-//         std::cout << "DEBUG: Writing request body to child process." << std::endl;
-//         write(pipeToChild[1], requestBody.c_str(), requestBody.size());
-//     }
-//     close(pipeToChild[1]);
-
-//     // Read output from the child process
-//     std::string cgiOutput;
-//     char buffer[4096];
-//     fd_set readSet;
-//     struct timeval timeout;
-
-//     // Set a timeout for reading from the pipe
-//     timeout.tv_sec = 5;
-//     timeout.tv_usec = 0;
-
-//     while (true) {
-//         FD_ZERO(&readSet);
-//         FD_SET(pipeFromChild[0], &readSet);
-
-//         int selectResult = select(pipeFromChild[0] + 1, &readSet, nullptr, nullptr, &timeout);
-//         if (selectResult < 0) {
-//             std::cerr << "DEBUG: select() error." << std::endl;
-//             break;
-//         } else if (selectResult == 0) {
-//             std::cerr << "DEBUG: Timeout while reading CGI output." << std::endl;
-//             break;
-//         }
-
-//         if (FD_ISSET(pipeFromChild[0], &readSet)) {
-//             ssize_t bytesRead = read(pipeFromChild[0], buffer, sizeof(buffer));
-//             if (bytesRead > 0) {
-//                 cgiOutput.append(buffer, bytesRead);
-//             } else if (bytesRead == 0) {
-//                 std::cout << "DEBUG: EOF reached while reading CGI output." << std::endl;
-//                 break; // EOF
-//             } else {
-//                 std::cerr << "DEBUG: read() error." << std::endl;
-//                 break;
-//             }
-//         }
-//     }
-//     close(pipeFromChild[0]);
-
-//     // Check if a timeout occurred
-//     if (timeoutOccurred) {
-//         std::cerr << "DEBUG: CGI script timed out." << std::endl;
-//         kill(pid, SIGKILL); // Terminate the child process
-//         waitpid(pid, nullptr, 0); // Clean up the child process
-//         return generateErrorResponse(504, "Gateway Timeout");
-//     }
-
-//     // Wait for the child process to exit
-//     int status;
-//     waitpid(pid, &status, 0);
-
-//     if (WIFEXITED(status) && WEXITSTATUS(status) == 0) {
-//         std::cout << "DEBUG: CGI script executed successfully." << std::endl;
-
-//         // Check if the CGI script already provided HTTP headers
-//         if (cgiOutput.find("HTTP/1.") != 0) {
-//             std::cout << "DEBUG: Adding default HTTP headers to CGI output." << std::endl;
-
-//             // Use configured HTTP version or default to 1.1
-//             std::string httpVersion = "HTTP/1.1";
-//             auto it = _serverConfig.find("http_version");
-//             if (it != _serverConfig.end()) {
-//                 httpVersion = it->second;
-//             }
-
-//             std::string headers = httpVersion + " 200 OK\r\n";
-
-//             // If there are no headers in the CGI output, add some defaults
-//             if (cgiOutput.find("\r\n\r\n") == std::string::npos) {
-//                 std::string defaultContentType = "text/html";
-//                 auto it = _serverConfig.find("default_cgi_content_type");
-//                 if (it != _serverConfig.end()) {
-//                     defaultContentType = it->second;
-//                 }
-
-//                 headers += "Content-Type: " + defaultContentType + "\r\n";
-//                 headers += "Content-Length: " + std::to_string(cgiOutput.size()) + "\r\n\r\n";
-//             }
-//             cgiOutput = headers + cgiOutput;
-//         }
-//         return cgiOutput;
-//     }
-
-//     std::cerr << "DEBUG: CGI script failed with status: " << WEXITSTATUS(status) << std::endl;
-//     return generateErrorResponse(500, "CGI script failed");
-// }
-std::cout << "DEBUG: Parent process continuing." << std::endl;
-    close(pipeToChild[0]);
-    close(pipeFromChild[1]);
-
-    // Write request body to the child process (for POST requests)
-    if (method == "POST" && !requestBody.empty()) {
-        std::cout << "DEBUG: Writing request body to child process." << std::endl;
-        write(pipeToChild[1], requestBody.c_str(), requestBody.size());
-    }
-    close(pipeToChild[1]);
-
-    // Read output from the child process
-    std::string cgiOutput;
-    char buffer[4096];
-    fd_set readSet;
-    struct timeval timeout;
-
-    // Set a timeout for reading from the pipe
-    timeout.tv_sec = 5; // 5 seconds
-    timeout.tv_usec = 0;
-
-    while (true) {
-        FD_ZERO(&readSet);
-        FD_SET(pipeFromChild[0], &readSet);
-
-        int selectResult = select(pipeFromChild[0] + 1, &readSet, nullptr, nullptr, &timeout);
-        if (selectResult < 0) {
-            std::cerr << "DEBUG: select() error." << std::endl;
-            break;
-        } else if (selectResult == 0) {
-            std::cerr << "DEBUG: Timeout while reading CGI output." << std::endl;
-            kill(pid, SIGKILL); // Terminate the child process
-            waitpid(pid, nullptr, 0); // Clean up the child process
-            return generateErrorResponse(504, "Gateway Timeout");
-        }
-
-        if (FD_ISSET(pipeFromChild[0], &readSet)) {
-            ssize_t bytesRead = read(pipeFromChild[0], buffer, sizeof(buffer));
-            if (bytesRead > 0) {
-                cgiOutput.append(buffer, bytesRead);
-            } else if (bytesRead == 0) {
-                std::cout << "DEBUG: EOF reached while reading CGI output." << std::endl;
-                break; // EOF
-            } else {
-                std::cerr << "DEBUG: read() error." << std::endl;
-                break;
-            }
-        }
-    }
-    close(pipeFromChild[0]);
-
-    // Wait for the child process to exit
-    int status;
-    waitpid(pid, &status, 0);
-
-    if (WIFEXITED(status) && WEXITSTATUS(status) == 0) {
-        std::cout << "DEBUG: CGI script executed successfully." << std::endl;
-
-        // Check if the CGI script already provided HTTP headers
-        if (cgiOutput.find("HTTP/1.") != 0) {
-            std::cout << "DEBUG: Adding default HTTP headers to CGI output." << std::endl;
-
-            // Use configured HTTP version or default to 1.1
-            std::string httpVersion = "HTTP/1.1";
-            auto it = _serverConfig.find("http_version");
-            if (it != _serverConfig.end()) {
-                httpVersion = it->second;
-            }
-
-            std::string headers = httpVersion + " 200 OK\r\n";
-
-            // If there are no headers in the CGI output, add some defaults
-            if (cgiOutput.find("\r\n\r\n") == std::string::npos) {
-                std::string defaultContentType = "text/html";
-                auto it = _serverConfig.find("default_cgi_content_type");
-                if (it != _serverConfig.end()) {
-                    defaultContentType = it->second;
-                }
-
-                headers += "Content-Type: " + defaultContentType + "\r\n";
-                headers += "Content-Length: " + std::to_string(cgiOutput.size()) + "\r\n\r\n";
-            }
-            cgiOutput = headers + cgiOutput;
-        }
-        return cgiOutput;
-    }
-
-    std::cerr << "DEBUG: CGI script failed with status: " << WEXITSTATUS(status) << std::endl;
-    return generateErrorResponse(500, "CGI script failed");
-}
-
 std::string webServer::generateDirectoryListing(const std::string& directoryPath, const std::string& requestPath)
 {
 	DIR* dir = opendir(directoryPath.c_str());
@@ -1805,68 +1035,6 @@ void webServer::setRootDirectories(const std::map<std::string, std::string>& roo
 	_rootDirectories = rootDirectories;
 }
 
-void webServer::setCGIConfig(const std::map<std::string, CGIConfig>& cgiConfig) {
-    _cgiConfig = cgiConfig;
-    for (const auto& [location, config] : _cgiConfig) {
-        std::cout << "DEBUG: Set CGI config for location '" << location << "':\n";
-        std::cout << "  cgiPass: " << config.cgiPass << "\n";
-        std::cout << "  scriptFilename: " << config.scriptFilename << "\n";
-    }
-}
-
-// const webServer::CGIConfig& webServer::getCGIConfig(const std::string& location) const {
-// 	auto it = _cgiConfig.find(location);
-// 	if (it != _cgiConfig.end()) {
-// 		return it->second;
-// 	}
-// 	static const webServer::CGIConfig defaultConfig;
-// 	return defaultConfig;
-// }
-const std::map<std::string, webServer::CGIConfig>& webServer::getCGIConfigs() const {
-    return _cgiConfig;
-}
-
-// const webServer::CGIConfig& webServer::getCGIConfig(const std::string& location) const {
-//     auto it = _cgiConfig.find(location);
-//     if (it != _cgiConfig.end()) {
-//         std::cout << "DEBUG: Retrieved CGIConfig for location '" << location << "':" << std::endl;
-//         std::cout << "  cgiPass: " << it->second.cgiPass << std::endl;
-//         std::cout << "  scriptFilename: " << it->second.scriptFilename << std::endl;
-//         std::cout << "  pathInfo: " << it->second.pathInfo << std::endl;
-//         std::cout << "  queryString: " << it->second.queryString << std::endl;
-//         std::cout << "  requestMethod: " << it->second.requestMethod << std::endl;
-//         return it->second;
-//     }
-//     std::cout << "DEBUG: No CGIConfig found for location '" << location << "', using default config." << std::endl;
-//     static const webServer::CGIConfig defaultConfig;
-//     return defaultConfig;
-// }
-const webServer::CGIConfig& webServer::getCGIConfig(const std::string& requestPath) const {
-    // Find the longest matching location prefix
-    std::string bestMatch = "";
-    
-    for (const auto& [location, config] : _cgiConfig) {
-        // Check if this location is a prefix of the request path
-        if (requestPath.find(location) == 0) {
-            // If we found a match and it's longer than our current best match, use it
-            if (location.length() > bestMatch.length()) {
-                bestMatch = location;
-            }
-        }
-    }
-    
-    // If we found a matching location prefix
-    if (!bestMatch.empty()) {
-        std::cout << "DEBUG: Found CGIConfig for location '" << bestMatch << "' for path '" << requestPath << "':" << std::endl;
-        std::cout << "  cgiPass: " << _cgiConfig.at(bestMatch).cgiPass << std::endl;
-        std::cout << "  scriptFilename: " << _cgiConfig.at(bestMatch).scriptFilename << std::endl;
-        return _cgiConfig.at(bestMatch);
-    }
-    
-    std::cout << "DEBUG: No CGIConfig found for path '" << requestPath << "', using default config." << std::endl;
-    static const webServer::CGIConfig defaultConfig;
-    return defaultConfig;
-}
 std::vector<std::string> webServer::getAllowedMethods(const std::string& location) const {
 	auto it = _allowedMethods.find(location);
 	if (it != _allowedMethods.end()) {
@@ -1877,4 +1045,8 @@ std::vector<std::string> webServer::getAllowedMethods(const std::string& locatio
 
 void webServer::setAllowedMethods(const std::map<std::string, std::vector<std::string>>& allowedMethods) {
 	_allowedMethods = allowedMethods;
+}
+
+CGIHandler& webServer::getCGIHandler() {
+    return _cgiHandler;
 }

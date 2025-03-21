@@ -3,21 +3,22 @@
 /*                                                        :::      ::::::::   */
 /*   main.cpp                                           :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: pwojnaro <pwojnaro@student.42.fr>          +#+  +:+       +#+        */
+/*   By: anamieta <anamieta@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/03/05 15:57:27 by piotr             #+#    #+#             */
-/*   Updated: 2025/03/20 17:18:21 by pwojnaro         ###   ########.fr       */
+/*   Updated: 2025/03/21 19:25:24 by anamieta         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "parseConfig.hpp"
 #include "webServer.hpp"
 #include "utils.hpp"
+#include "CGIHandler.hpp"
 #include <thread>
 #include <vector>
 #include <memory>
 
-int main(int argc, char** argv) 
+int main(int argc, char** argv)
 {
     std::string filename;
     if (argc > 2)
@@ -29,19 +30,19 @@ int main(int argc, char** argv)
         filename = "config/config1.config";
     else if (argc == 2)
         filename = argv[1];
-    
+
     std::ifstream file(filename);
     if (!file.is_open())
     {
         std::cerr << "Error: Could not open configuration file: " << filename << std::endl;
         return 1;
     }
-    
+
     std::vector<parseConfig> parser = splitServers(file);
     file.close();
-    
+
     std::vector<std::thread> threads;
-    
+
     for (size_t j = 0; j < parser.size(); j++)
     {
         try
@@ -50,7 +51,7 @@ int main(int argc, char** argv)
             parser[j].printCGIConfig();
 			// if (parser[j].getIndex().empty())
 			// {
-				
+
 			// }
 			// for (const auto& pair : parser[j].getErrorPages()) {
 			// 	std::cout << "Key: " << pair.first << " | Value: " << pair.second << std::endl;
@@ -73,10 +74,10 @@ int main(int argc, char** argv)
             {
                 std::cout << "Server Block: " << serverBlock << ", Server Name: " << serverName << "\n";
             }
-            
+
             std::shared_ptr<webServer> server = std::make_shared<webServer>(
                 parser[j]._parsingServer, parser[j]._parsingLocation);
-            
+
             // Set the autoindex configuration before starting the server
             server->setAutoindexConfig(parser[j]._autoindexConfig);
 
@@ -93,11 +94,11 @@ int main(int argc, char** argv)
             server->setAllowedMethods(parser[j].getAllowedMethods()); // <-- Add this line
 
 			// Set the CGI configuration before starting the server
-			std::map<std::string, webServer::CGIConfig> webServerCGIConfig;
+			std::map<std::string, CGIHandler::CGIConfig> webServerCGIConfig;
 			const auto& parserCGIConfig = parser[j].getCGIConfigs();
 
 			for (const auto& [location, config] : parserCGIConfig) {
-				webServer::CGIConfig serverConfig;
+				CGIHandler::CGIConfig serverConfig;
 				serverConfig.cgiPass = config.cgiPass;
 				serverConfig.scriptFilename = config.scriptFilename;
 				serverConfig.pathInfo = config.pathInfo;
@@ -106,13 +107,13 @@ int main(int argc, char** argv)
 				webServerCGIConfig[location] = serverConfig;
 			}
 
-			server->setCGIConfig(webServerCGIConfig);
+			server->getCGIHandler().setCGIConfig(webServerCGIConfig);
             // Set the client max body size for each server block
             for (const auto& [serverBlock, serverName] : parser[j].getServerNames()) {
                 size_t maxBodySize = parser[j].getClientMaxBodySize(serverBlock);
                 server->setClientMaxBodySize(serverName, maxBodySize);
             }
-	
+
             threads.push_back(std::thread([server]()
             {
                 server->start();
@@ -123,7 +124,7 @@ int main(int argc, char** argv)
             std::cerr << "Error starting server: " << e.what() << '\n';
         }
     }
-    
+
     for (auto &t : threads)
     {
         if (t.joinable())

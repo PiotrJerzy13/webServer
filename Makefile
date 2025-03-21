@@ -26,6 +26,7 @@ SRC = $(SRC_DIR)main.cpp \
 	  $(SRC_DIR)HTTPRequest.cpp \
 	  $(SRC_DIR)HTTPResponse.cpp \
 	  $(SRC_DIR)FileUtilis.cpp \
+	  $(SRC_DIR)CGIHandler.cpp \
 
 
 OBJ = $(addprefix $(OBJ_DIR), $(notdir $(SRC:.cpp=.o)))

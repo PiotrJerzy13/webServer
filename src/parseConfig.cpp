@@ -6,14 +6,12 @@
 /*   By: pwojnaro <pwojnaro@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/12 18:29:11 by eleni             #+#    #+#             */
-/*   Updated: 2025/03/21 21:12:42 by pwojnaro         ###   ########.fr       */
+/*   Updated: 2025/03/22 16:01:10 by pwojnaro         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "parseConfig.hpp"
 #include <map>
-
-#include "parseConfig.hpp"
 #include <sstream>
 #include <iostream>
 #include <algorithm>
@@ -164,17 +162,6 @@ void parseConfig::trimServer(const std::string& line)
 	}
 }
 
-std::pair<std::string, std::string> parseConfig::parseKeyValue(const std::string& line) 
-{
-	size_t pos = line.find_first_of(" \t");
-	if (pos == std::string::npos) {
-		return std::make_pair("", "");
-	}
-	std::string key = trim(line.substr(0, pos));
-	std::string value = trim(line.substr(pos + 1));
-	return std::make_pair(key, value);
-}
-
 void parseConfig::fillLocationMap(std::string& line, const std::string& location) 
 {
 	std::string trimmedLine = trim(line);
@@ -191,10 +178,6 @@ void parseConfig::fillLocationMap(std::string& line, const std::string& location
 		{
 			_rootDirectories[location] = value;
 		} 
-		else if (key == "alias") 
-		{
-			_aliasDirectories[location] = value;
-		} 
 		else if (key == "autoindex") 
 		{
 			_autoindexConfig[location] = (value == "on");
@@ -202,7 +185,8 @@ void parseConfig::fillLocationMap(std::string& line, const std::string& location
 		else if (key == "return") 
 		{
 			_redirections[location] = value;
-		} else if (key == "methods") 
+		} 
+		else if (key == "methods") 
 		{
 			std::istringstream methodStream(value);
 			std::string method;

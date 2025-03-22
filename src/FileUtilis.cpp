@@ -6,7 +6,7 @@
 /*   By: pwojnaro <pwojnaro@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/03/13 20:03:48 by piotr             #+#    #+#             */
-/*   Updated: 2025/03/21 20:53:26 by pwojnaro         ###   ########.fr       */
+/*   Updated: 2025/03/22 16:38:48 by pwojnaro         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -70,7 +70,8 @@ std::pair<std::vector<char>, std::string> FileUtils::readFile(const std::string&
 	{
 	try {
 		std::cout << "[DEBUG] Creating directory: " << dirPath << std::endl;
-		if (!std::filesystem::exists(dirPath)) {
+		if (!std::filesystem::exists(dirPath)) 
+		{
 			std::filesystem::create_directories(dirPath);
 		}
 		return true;

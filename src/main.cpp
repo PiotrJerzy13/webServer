@@ -6,7 +6,7 @@
 /*   By: pwojnaro <pwojnaro@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/03/05 15:57:27 by piotr             #+#    #+#             */
-/*   Updated: 2025/03/21 21:10:47 by pwojnaro         ###   ########.fr       */
+/*   Updated: 2025/03/22 16:37:34 by pwojnaro         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -52,22 +52,22 @@ int main(int argc, char** argv)
 			std::shared_ptr<webServer> server = std::make_shared<webServer>(
 				parser[j]._parsingServer, parser[j]._parsingLocation);
 
-			// Set the autoindex configuration before starting the server
+			// Set the autoindex configuration 
 			server->setAutoindexConfig(parser[j]._autoindexConfig);
 
-			// Set the redirections before starting the server
+			// Set the redirections 
 			server->setRedirections(parser[j].getRedirections());
 
-			// Set the server names before starting the server
+			// Set the server names 
 			server->setServerNames(parser[j].getServerNames());
 
-			// Set the root directories before starting the server
+			// Set the root directories
 			server->setRootDirectories(parser[j].getRootDirectories());
 
-			// Set the allowed methods before starting the server
+			// Set the allowed methods
 			server->setAllowedMethods(parser[j].getAllowedMethods());
 
-			// Set the CGI configuration before starting the server
+			// Set the CGI configuration
 			std::map<std::string, CGIHandler::CGIConfig> webServerCGIConfig;
 			const auto& parserCGIConfig = parser[j].getCGIConfigs();
 
@@ -84,7 +84,6 @@ int main(int argc, char** argv)
 
 			server->getCGIHandler().setCGIConfig(webServerCGIConfig);
 
-			// Set the client max body size for each server block
 			for (const auto& [serverBlock, serverName] : parser[j].getServerNames()) 
 			{
 				size_t maxBodySize = parser[j].getClientMaxBodySize(serverBlock);

@@ -6,19 +6,19 @@
 /*   By: pwojnaro <pwojnaro@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/16 21:12:30 by anamieta          #+#    #+#             */
-/*   Updated: 2025/03/21 20:28:50 by pwojnaro         ###   ########.fr       */
+/*   Updated: 2025/03/22 16:36:14 by pwojnaro         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include <map>
 #include "SocketManager.hpp"
 #include "HTTPRequest.hpp"
 #include "HTTPResponse.hpp"
 #include "parseConfig.hpp"
 #include "FileUtilis.hpp"
+#include "CGIHandler.hpp"
 #include <vector>
 #include <dirent.h>
-#include "CGIHandler.hpp"
+#include <map>
 
 volatile sig_atomic_t timeoutOccurred = 0;
 
@@ -142,11 +142,9 @@ void webServer::processRead(int clientSocket)
 		return;
 	}
 
-	// Get the connection for this client.
 	Connection& conn = _connections[clientSocket];
 	conn.inputBuffer = fullRequest;
 
-	// If the server name hasn't been set yet, extract it from the Host header.
 	if (conn.serverName.empty())
 	{
 		HTTPRequest req(fullRequest);
@@ -154,7 +152,6 @@ void webServer::processRead(int clientSocket)
 		conn.serverName = (!host.empty()) ? host : "default";
 	}
 
-	// Enforce the client_max_body_size limit.
 	size_t maxBodySize = getClientMaxBodySize(conn.serverName);
 	if (fullRequest.size() > maxBodySize)
 	{
@@ -167,7 +164,6 @@ void webServer::processRead(int clientSocket)
 		return;
 	}
 
-	// Process the full HTTP request.
 	std::string responseStr = handleRequest(fullRequest);
 	conn.outputBuffer = responseStr;
 	updatePollEvents(clientSocket, POLLOUT);
@@ -190,7 +186,6 @@ void webServer::processWrite(int clientSocket)
 		if (bytesWritten > 0)
 		{
 			conn.outputBuffer.erase(0, bytesWritten);
-			// If all data is sent, close the connection
 			if (conn.outputBuffer.empty())
 			{
 				closeConnection(clientSocket);
@@ -280,12 +275,12 @@ std::string webServer::resolveFilePath(const std::string& path, const std::strin
 	if (resolvedPath.empty() || resolvedPath[0] != '/')
 		return "";
 
-	// Check for location-specific root directory from _rootDirectories
 	std::string matchedLocation = "";
-	std::string locationRootDir = rootDir; // Default to server root
+	std::string locationRootDir = rootDir;
 	for (const auto& [location, customRoot] : _rootDirectories)
 	{
-		if (!location.empty() && resolvedPath.find(location) == 0) {
+		if (!location.empty() && resolvedPath.find(location) == 0) 
+		{
 			std::cout << "[DEBUG] Match found!\n";
 			if (location.length() > matchedLocation.length()) {
 				matchedLocation = location;
@@ -303,16 +298,7 @@ std::string webServer::resolveFilePath(const std::string& path, const std::strin
 		std::cout << "[DEBUG] Final path: '" << locationRootDir + relativePath << "'\n";
 		return locationRootDir + relativePath;
 	}
-
-	// Check for alias mapping
-	for (const auto& [locationPrefix, aliasDir] : _aliasDirectories) 
-	{
-		if (resolvedPath.compare(0, locationPrefix.size(), locationPrefix) == 0) 
-		{
-			std::string relativePath = resolvedPath.substr(locationPrefix.size());
-			return aliasDir + relativePath;
-		}
-	}
+	
 	return rootDir + resolvedPath;
 }
 
@@ -360,7 +346,6 @@ std::string webServer::handleRequest(const std::string& fullRequest)
 	bool methodAllowed = false;
 	std::string matchedLocation = "";
 
-	// Find the longest matching location for the path
 	for (const auto& [location, allowedMethods] : _allowedMethods)
 	{
 		if (decodedPath.find(location) == 0 && location.length() > matchedLocation.length()) 
@@ -372,7 +357,7 @@ std::string webServer::handleRequest(const std::string& fullRequest)
 
 	if (matchedLocation.empty()) 
 	{
-		methodAllowed = true; // Default behavior if no location-specific rules are defined
+		methodAllowed = true;
 	}
 
 	if (!methodAllowed) 
@@ -403,7 +388,6 @@ std::string webServer::handleRequest(const std::string& fullRequest)
 	{
 		if (rawPath.find(location) == 0 || decodedPath.find(location) == 0) 
 		{
-			std::cout << "[DEBUG] Redirection match found for location: " << location << "\n";
 			size_t spacePos = redirection.find_first_of(" \t");
 			if (spacePos != std::string::npos) 
 			{
@@ -422,7 +406,6 @@ std::string webServer::handleRequest(const std::string& fullRequest)
 			}
 		}
 	}
-	// Check if the request path matches a CGI location
 	if (rawPath.find("/cgi-bin/") == 0) 
 	{
 		std::string scriptPath = rawPath.substr(0, rawPath.find('?'));
@@ -431,14 +414,12 @@ std::string webServer::handleRequest(const std::string& fullRequest)
 		return _cgiHandler.executeCGI(scriptPath, method, queryString, requestBody);
 	}
 	
-	// Determine the root directory from _serverConfig, defaulting to "./www"
-	std::string rootDir = "./www"; // Default root directory
+	std::string rootDir = "./www";
 	auto itServer = _serverConfig.find("root");
 	if (itServer != _serverConfig.end()) 
 	{
 		rootDir = itServer->second;
 	}
-	// Handle POST requests (uploads and form submissions).
 	if (method == "POST") 
 	{
 		std::string contentType = httpRequest.getContentTypeFromHeaders("Content-Type");
@@ -448,46 +429,38 @@ std::string webServer::handleRequest(const std::string& fullRequest)
 		if (serverName.empty())
 			serverName = "default";
 
-		// Special handling for upload paths.
 		if (rawPath == "/upload" || rawPath.find("/upload/") == 0) 
 		{
-			// Check if it's a multipart/form-data request
 			if (contentType.find("multipart/form-data") != std::string::npos) 
 			{
-				// Extract the boundary from the Content-Type header
 				size_t boundaryPos = contentType.find("boundary=");
-				if (boundaryPos == std::string::npos) {
+				if (boundaryPos == std::string::npos) 
+				{
 					return generateErrorResponse(400, "Missing boundary in Content-Type");
 				}
 				std::string boundary = contentType.substr(boundaryPos + 9);
 				boundary = "--" + boundary;
 
-				// Get the request body
 				std::string body = httpRequest.getBody();
 
-				// Check the Content-Length before processing
 				std::string contentLengthStr = httpRequest.getHeader("Content-Length");
-				// Process the upload if size check passes
 				return generateSuccessResponse("Files uploaded successfully");
 			}
 		}
-		return generatePostResponse(httpRequest.getBody(), contentType, serverName);
+		return generatePostResponse(httpRequest.getBody(), contentType);
 	}
 
-	// Resolve the file path for non-POST requests.
 	std::string filePath = resolveFilePath(decodedPath, rootDir);
 	if (filePath.empty())
 		return generateErrorResponse(400, "Invalid path");
 
 	std::cout << "[DEBUG] Resolved File Path: " << filePath << "\n";
 
-	// Check if the resolved path is a directory.
 	struct stat st;
 	if (stat(filePath.c_str(), &st) == 0 && S_ISDIR(st.st_mode)) 
 	{
 		std::cout << "[DEBUG] Path is a directory\n";
 
-		// Check autoindex configuration.
 		bool autoindexEnabled = false;
 		std::string matchedLocation = "";
 		for (const auto& locationPair : _autoindexConfig) 
@@ -515,7 +488,9 @@ std::string webServer::handleRequest(const std::string& fullRequest)
 			if (access(indexPath.c_str(), F_OK) == 0) 
 			{
 				return generateGetResponse(indexPath);
-			} else {
+			} 
+			else 
+			{
 				return generateErrorResponse(403, "Directory listing is disabled, and no index file found.");
 			}
 		}
@@ -560,17 +535,13 @@ std::string webServer::getCurrentTimeString()
 	return std::to_string(_formNumber);
 }
 
-std::string webServer::generatePostResponse(const std::string& requestBody,
-	const std::string& contentType,
-	const std::string& serverName)
+std::string webServer::generatePostResponse(const std::string& requestBody, const std::string& contentType)
 {
-	(void)serverName; // to remove
 
 	std::cout << "[DEBUG] Processing POST request" << std::endl;
 	std::cout << "[DEBUG] Content-Type: " << contentType << std::endl;
 	std::cout << "[DEBUG] Request body size: " << requestBody.size() << " bytes" << std::endl;
 
-	// Get upload directory from server configuration
 	std::string uploadDir = "./www/html/upload";
 	auto it = _serverConfig.find("upload_dir");
 	if (it != _serverConfig.end()) 
@@ -578,27 +549,22 @@ std::string webServer::generatePostResponse(const std::string& requestBody,
 		uploadDir = it->second;
 	}
 
-	// Create upload directory if it doesn't exist
 	if (!FileUtils::createDirectoryIfNotExists(uploadDir)) 
 	{
 		return generateErrorResponse(500, "Server configuration error");
 	}
-	// Handle multipart/form-data (file uploads)
 	if (contentType.find("multipart/form-data") != std::string::npos)
 	{
 		return handleMultipartUpload(requestBody, contentType, uploadDir);
 	}
-	// Handle application/x-www-form-urlencoded
 	else if (contentType.find("application/x-www-form-urlencoded") != std::string::npos) 
 	{
 		return handleFormUrlEncodedUpload(requestBody, uploadDir);
 	}
-	// Handle text/plain
 	else if (contentType.find("text/plain") != std::string::npos)
 	{
 		return handleTextUpload(requestBody, uploadDir);
 	}
-	// Unsupported content type
 	else 
 	{
 		std::cerr << "[ERROR] Unsupported content type: " << contentType << std::endl;
@@ -627,12 +593,9 @@ std::string webServer::handleMultipartUpload(const std::string& requestBody,
 	{
 		boundary = boundary.substr(1, boundary.size() - 2);
 	}
-	std::cout << "[DEBUG] Boundary: " << boundary << std::endl;
 
-	// Full boundary string
 	std::string fullBoundary = "--" + boundary;
 
-	// Find the first boundary
 	size_t boundaryStart = requestBody.find(fullBoundary);
 	if (boundaryStart == std::string::npos) 
 	{
@@ -640,7 +603,6 @@ std::string webServer::handleMultipartUpload(const std::string& requestBody,
 		return generateErrorResponse(400, "Malformed multipart/form-data");
 	}
 
-	// Find the headers section
 	size_t headersStart = boundaryStart + fullBoundary.length();
 	if (headersStart >= requestBody.size()) 
 	{
@@ -648,13 +610,11 @@ std::string webServer::handleMultipartUpload(const std::string& requestBody,
 		return generateErrorResponse(400, "Malformed multipart/form-data");
 	}
 
-	// Skip CRLF after boundary
 	if (requestBody[headersStart] == '\r' && headersStart + 1 < requestBody.size() && requestBody[headersStart + 1] == '\n') 
 	{
 		headersStart += 2;
 	}
 
-	// Find the end of headers
 	size_t headersEnd = requestBody.find("\r\n\r\n", headersStart);
 	if (headersEnd == std::string::npos) 
 	{
@@ -662,27 +622,24 @@ std::string webServer::handleMultipartUpload(const std::string& requestBody,
 		return generateErrorResponse(400, "Malformed multipart/form-data");
 	}
 
-	// Extract headers
 	std::string headers = requestBody.substr(headersStart, headersEnd - headersStart);
 	std::cout << "[DEBUG] Headers: " << headers << std::endl;
 
-	// Extract filename (or generate a default name if missing)
 	std::string filename = "uploaded_file_" + getCurrentTimeString() + ".bin";
 	size_t filenamePos = headers.find("filename=\"");
 	if (filenamePos != std::string::npos) 
 	{
 		size_t start = filenamePos + 10;
 		size_t end = headers.find("\"", start);
-		if (end != std::string::npos) {
+		if (end != std::string::npos) 
+		{
 			filename = sanitizeFilename(headers.substr(start, end - start));
 			std::cout << "[DEBUG] Filename: " << filename << std::endl;
 		}
 	}
 
-	// Content starts after headers
-	size_t contentStart = headersEnd + 4; // Skip double CRLF
+	size_t contentStart = headersEnd + 4;
 
-	// Find the next boundary
 	size_t nextBoundary = requestBody.find(fullBoundary, contentStart);
 	if (nextBoundary == std::string::npos) 
 	{
@@ -690,21 +647,20 @@ std::string webServer::handleMultipartUpload(const std::string& requestBody,
 		return generateErrorResponse(400, "Malformed multipart/form-data");
 	}
 
-	// Content ends before next boundary
 	size_t contentEnd = nextBoundary;
-	if (contentEnd > 2 && requestBody[contentEnd - 2] == '\r' && requestBody[contentEnd - 1] == '\n') {
+	if (contentEnd > 2 && requestBody[contentEnd - 2] == '\r' && requestBody[contentEnd - 1] == '\n') 
+	{
 		contentEnd -= 2;
 	}
 
-	// Extract content (file data)
 	std::string content = requestBody.substr(contentStart, contentEnd - contentStart);
 	std::cout << "[DEBUG] Content size: " << content.size() << " bytes" << std::endl;
 
-	// Save file to the upload directory
 	std::string filePath = uploadDir + "/" + filename;
 	std::cout << "[DEBUG] Saving file to: " << filePath << std::endl;
 
-	if (!FileUtils::writeFile(filePath, content)) {
+	if (!FileUtils::writeFile(filePath, content)) 
+	{
 		return generateErrorResponse(500, "Failed to save file");
 	}
 
@@ -714,12 +670,9 @@ std::string webServer::handleMultipartUpload(const std::string& requestBody,
 	return HTTPResponse(201, "text/plain", responseText).generateResponse();
 }
 
-
 std::string webServer::handleFormUrlEncodedUpload(const std::string& requestBody,
 	const std::string& uploadDir)
 {
-	std::cout << "[DEBUG] Processing form-urlencoded upload" << std::endl;
-
 	std::string filename = "form_data_" + getCurrentTimeString() + ".txt";
 	std::string filePath = uploadDir + "/" + filename;
 
@@ -795,14 +748,6 @@ std::string webServer::getFilePath(const std::string& path)
 	return basePath + path;
 }
 
-void handleTimeout(int signal) 
-{
-	if (signal == SIGALRM) 
-	{
-		timeoutOccurred = 1;
-	}
-}
-
 std::string webServer::generateDirectoryListing(const std::string& directoryPath, const std::string& requestPath)
 {
 	DIR* dir = opendir(directoryPath.c_str());
@@ -855,7 +800,7 @@ void webServer::setServerNames(const std::map<std::string, std::string>& serverN
 void webServer::setClientMaxBodySize(const std::string& serverName, size_t size) 
 {
 	_clientMaxBodySizes[serverName] = size;
-	std::cout << "[DEBUG] Set client_max_body_size for server '" << serverName
+	std::cout << "Set client_max_body_size for server '" << serverName
 			  << "' to " << size << " bytes\n";
 }
 
@@ -881,13 +826,14 @@ size_t webServer::getClientMaxBodySize(const std::string& serverName) const
 	}
 	// Try just "localhost" as fallback
 	it = _clientMaxBodySizes.find("localhost");
-	if (it != _clientMaxBodySizes.end()) {
-		std::cout << "[DEBUG] Found client_max_body_size for 'localhost': "
+	if (it != _clientMaxBodySizes.end()) 
+	{
+		std::cout << "Found client_max_body_size for 'localhost': "
 				 << it->second << " bytes\n";
 		return it->second;
 	}
 
-	std::cout << "[DEBUG] Using default client_max_body_size for server '" << serverName
+	std::cout << "Using default client_max_body_size for server '" << serverName
 			 << "': 1048576 bytes\n";
 	return 1048576;
 }
@@ -899,7 +845,8 @@ size_t webServer::getContentLength(const std::unordered_map<std::string, std::st
 	{
 		try {
 			return std::stoul(it->second);
-		} catch (const std::exception& e) 
+		} 
+		catch (const std::exception& e) 
 		{
 			std::cerr << "[ERROR] Invalid Content-Length value: " << e.what() << std::endl;
 		}
@@ -911,7 +858,6 @@ std::string webServer::handleTextUpload(const std::string& requestBody,
 {
 	std::cout << "[DEBUG] Processing plain text upload" << std::endl;
 
-	// Parse headers to extract filename (if available)
 	std::unordered_map<std::string, std::string> headers = parseHeaders(requestBody);
 	std::string filename = "text_data_" + getCurrentTimeString() + ".txt";
 
@@ -931,7 +877,6 @@ std::string webServer::handleTextUpload(const std::string& requestBody,
 		}
 	}
 
-	// Save file
 	std::string filePath = uploadDir + "/" + filename;
 	std::cout << "[DEBUG] Saving text data to: " << filePath << std::endl;
 
@@ -942,7 +887,6 @@ std::string webServer::handleTextUpload(const std::string& requestBody,
 
 	std::cout << "[POST] Text data saved: " << filename << std::endl;
 
-	// Return success response
 	std::string responseText = "Text data uploaded successfully: " + filename;
 	return HTTPResponse(201, "text/plain", responseText).generateResponse();
 }
@@ -961,10 +905,12 @@ std::string webServer::readFullRequest(int clientSocket)
 	while (!headersComplete) 
 	{
 		bytesRead = recv(clientSocket, buffer, sizeof(buffer), 0);
-		if (bytesRead < 0) {
+		if (bytesRead < 0) 
+		{
 			std::cerr << "[ERROR] recv() failed" << std::endl;
 			return "";
-		} else if (bytesRead == 0) 
+		} 
+		else if (bytesRead == 0) 
 		{
 			if (request.empty()) 
 			{
@@ -977,7 +923,8 @@ std::string webServer::readFullRequest(int clientSocket)
 
 		// Check for end of headers
 		size_t headersEnd = request.find("\r\n\r\n");
-		if (headersEnd != std::string::npos) {
+		if (headersEnd != std::string::npos) 
+		{
 			headersComplete = true;
 			size_t headerEndIndex = headersEnd + 4;
 
@@ -1006,7 +953,8 @@ std::string webServer::readFullRequest(int clientSocket)
 			}
 
 			// Check if the request size exceeds the maximum allowed size
-			if (contentLength > maxBodySize) {
+			if (contentLength > maxBodySize) 
+			{
 				std::cerr << "[ERROR] Request size (" << contentLength
 						  << " bytes) exceeds client_max_body_size (" << maxBodySize
 						  << " bytes)\n";
@@ -1062,7 +1010,7 @@ std::vector<std::string> webServer::getAllowedMethods(const std::string& locatio
 	{
 		return it->second;
 	}
-	return {}; // Return an empty vector if no methods are specified
+	return {};
 }
 
 void webServer::setAllowedMethods(const std::map<std::string, std::vector<std::string>>& allowedMethods) 

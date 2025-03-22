@@ -6,7 +6,7 @@
 /*   By: pwojnaro <pwojnaro@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/03/07 18:49:05 by pwojnaro          #+#    #+#             */
-/*   Updated: 2025/03/21 21:10:25 by pwojnaro         ###   ########.fr       */
+/*   Updated: 2025/03/22 16:38:37 by pwojnaro         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,12 +27,10 @@ void HTTPRequest::parseRequest(const std::string& rawRequest)
 	requestStream >> method >> path >> version;
 
 	std::string line;
-	std::getline(requestStream, line); // Skip the first line (already parsed)
+	std::getline(requestStream, line);
 
-	// Parse headers until empty line (which marks end of headers)
 	while (std::getline(requestStream, line) && !line.empty())
 	{
-		// Remove trailing \r if present
 		if (!line.empty() && line[line.size() - 1] == '\r')
 		{
 			line.erase(line.size() - 1);
@@ -52,10 +50,9 @@ void HTTPRequest::parseRequest(const std::string& rawRequest)
 		}
 	}
 
-	// Extract body based on Content-Length
 	size_t headerEnd = rawRequest.find("\r\n\r\n");
 	if (headerEnd != std::string::npos) {
-		body = rawRequest.substr(headerEnd + 4); // Skip \r\n\r\n
+		body = rawRequest.substr(headerEnd + 4);
 
 		std::string contentLengthStr = getHeader("Content-Length");
 		if (!contentLengthStr.empty()) 
@@ -63,13 +60,13 @@ void HTTPRequest::parseRequest(const std::string& rawRequest)
 			size_t contentLength = std::stoul(contentLengthStr);
 			if (body.size() > contentLength) 
 			{
-				body = body.substr(0, contentLength); // Truncate to Content-Length
+				body = body.substr(0, contentLength);
 			} 
 			else if (body.size() < contentLength) 
 			{
 				std::cerr << "[ERROR] Incomplete body: Expected " << contentLength
 						  << " bytes, got " << body.size() << " bytes" << std::endl;
-				body.clear(); // Clear body if incomplete
+				body.clear();
 			}
 		}
 	}
@@ -107,7 +104,6 @@ std::string HTTPRequest::getRawRequest() const
 
 std::string HTTPRequest::getContentTypeFromHeaders(const std::string& fullRequest) 
 {
-	// Extract headers from the full request
 	size_t headersEnd = fullRequest.find("\r\n\r\n");
 	if (headersEnd == std::string::npos) 
 	{

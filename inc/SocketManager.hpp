@@ -6,7 +6,7 @@
 /*   By: pwojnaro <pwojnaro@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/03/07 16:04:37 by pwojnaro          #+#    #+#             */
-/*   Updated: 2025/03/21 21:02:32 by pwojnaro         ###   ########.fr       */
+/*   Updated: 2025/03/22 16:24:22 by pwojnaro         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,6 +18,7 @@
 #include <stdexcept>
 #include <iostream>
 #include "socket.hpp"
+#include <optional>
 
 class SocketManager {
 public:

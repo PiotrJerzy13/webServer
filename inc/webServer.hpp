@@ -6,7 +6,7 @@
 /*   By: pwojnaro <pwojnaro@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/16 21:11:58 by anamieta          #+#    #+#             */
-/*   Updated: 2025/03/21 21:06:16 by pwojnaro         ###   ########.fr       */
+/*   Updated: 2025/03/22 16:31:58 by pwojnaro         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -58,7 +58,7 @@ class webServer {
 		std::string generateResponse(const HTTPRequest& request);
 		std::string generateDeleteResponse(const std::string& filePath);
 		std::string generateMethodNotAllowedResponse();
-		std::string generatePostResponse(const std::string& requestBody, const std::string& contentType, const std::string& serverName);
+		std::string generatePostResponse(const std::string& requestBody, const std::string& contentType);
 		std::string generateGetResponse(const std::string& filePath);
 		std::string generateErrorResponse(int statusCode, const std::string& message);
 		std::string generateSuccessResponse(const std::string& message);
@@ -116,7 +116,6 @@ class webServer {
 
 		// Member variables
 		std::map<std::string, std::vector<std::string>> _allowedMethods;
-		std::map<std::string, std::string> _aliasDirectories;
 		std::map<std::string, size_t> _clientMaxBodySizes;
 		std::map<std::string, bool> _autoindexConfig;
 		std::map<std::string, std::string> _serverNames;

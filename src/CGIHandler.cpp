@@ -6,7 +6,7 @@
 /*   By: pwojnaro <pwojnaro@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/03/21 20:54:27 by pwojnaro          #+#    #+#             */
-/*   Updated: 2025/03/21 21:14:57 by pwojnaro         ###   ########.fr       */
+/*   Updated: 2025/03/22 16:10:12 by pwojnaro         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,7 +22,8 @@ CGIHandler::CGIHandler(const std::unordered_multimap<std::string, std::string>& 
 
 void CGIHandler::handleTimeout(int signal)
 {
-	if (signal == SIGALRM) {
+	if (signal == SIGALRM) 
+	{
 		timeoutOccurred = 1;
 	}
 }

@@ -6,7 +6,7 @@
 /*   By: pwojnaro <pwojnaro@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/12 17:50:48 by eleni             #+#    #+#             */
-/*   Updated: 2025/03/21 21:01:39 by pwojnaro         ###   ########.fr       */
+/*   Updated: 2025/03/22 16:01:00 by pwojnaro         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -65,9 +65,6 @@ class parseConfig {
 			const char* what() const throw();
 		};
 	
-		// **Utility Functions**
-		std::pair<std::string, std::string> parseKeyValue(const std::string& line);
-	
 	private:
 		// **Storage for Parsed Configuration**
 		std::string _location;
@@ -82,14 +79,8 @@ class parseConfig {
 		std::map<std::string, std::string> _serverNames;
 		std::map<std::string, std::string> _errorPages;
 		std::map<std::string, std::string> _rootDirectories;
-		std::map<std::string, std::string> _aliasDirectories;
 		std::map<std::string, std::string> _redirections;
 		std::map<std::string, std::vector<std::string>> _allowedMethods;
-		std::map<std::string, std::vector<std::string>> _tryFiles;
-		std::map<std::string, std::string> _allow;
-		std::map<std::string, std::string> _indexFiles;
-		std::map<std::string, std::string> _cgiPass;
-		std::map<std::string, std::map<std::string, std::string>> _cgiParams;
 	
 		// **Parsing Functions**
 		void splitMaps(std::string& line, int& brackets);

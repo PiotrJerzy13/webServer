@@ -6,7 +6,7 @@
 /*   By: pwojnaro <pwojnaro@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/03/21 20:54:27 by pwojnaro          #+#    #+#             */
-/*   Updated: 2025/03/22 16:10:12 by pwojnaro         ###   ########.fr       */
+/*   Updated: 2025/03/22 17:07:31 by pwojnaro         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -231,7 +231,8 @@ std::string CGIHandler::executeCGI(const std::string& scriptPath, const std::str
 		{
 			std::string httpVersion = "HTTP/1.1";
 			auto it = _serverConfig.find("http_version");
-			if (it != _serverConfig.end()) {
+			if (it != _serverConfig.end()) 
+			{
 				httpVersion = it->second;
 			}
 

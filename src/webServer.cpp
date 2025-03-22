@@ -6,7 +6,7 @@
 /*   By: pwojnaro <pwojnaro@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/16 21:12:30 by anamieta          #+#    #+#             */
-/*   Updated: 2025/03/22 16:36:14 by pwojnaro         ###   ########.fr       */
+/*   Updated: 2025/03/22 17:05:06 by pwojnaro         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -155,8 +155,7 @@ void webServer::processRead(int clientSocket)
 	size_t maxBodySize = getClientMaxBodySize(conn.serverName);
 	if (fullRequest.size() > maxBodySize)
 	{
-		std::cerr << "[ERROR] Request size (" << fullRequest.size()
-			<< " bytes) exceeds client_max_body_size (" << maxBodySize
+		std::cerr << "[ERROR] Request size (" << fullRequest.size() << " bytes) exceeds client_max_body_size (" << maxBodySize
 			<< " bytes) for server " << conn.serverName << "\n";
 		std::string response = generateErrorResponse(413, "Payload Too Large");
 		sendResponse(conn.socket, response);
@@ -282,7 +281,8 @@ std::string webServer::resolveFilePath(const std::string& path, const std::strin
 		if (!location.empty() && resolvedPath.find(location) == 0) 
 		{
 			std::cout << "[DEBUG] Match found!\n";
-			if (location.length() > matchedLocation.length()) {
+			if (location.length() > matchedLocation.length()) 
+			{
 				matchedLocation = location;
 				locationRootDir = customRoot;
 				std::cout << "[DEBUG] Using location '" << matchedLocation << "' with root '" << locationRootDir << "'\n";
@@ -401,7 +401,9 @@ std::string webServer::handleRequest(const std::string& fullRequest)
 				response << "Content-Length: 0\r\n";
 				response << "\r\n";
 				return response.str();
-			} else {
+			} 
+			else 
+			{
 				std::cerr << "[ERROR] Invalid redirection format: " << redirection << std::endl;
 			}
 		}
@@ -425,9 +427,6 @@ std::string webServer::handleRequest(const std::string& fullRequest)
 		std::string contentType = httpRequest.getContentTypeFromHeaders("Content-Type");
 		if (contentType.empty())
 			contentType = "text/plain";
-		std::string serverName = httpRequest.getHeader("Host");
-		if (serverName.empty())
-			serverName = "default";
 
 		if (rawPath == "/upload" || rawPath.find("/upload/") == 0) 
 		{
@@ -438,12 +437,6 @@ std::string webServer::handleRequest(const std::string& fullRequest)
 				{
 					return generateErrorResponse(400, "Missing boundary in Content-Type");
 				}
-				std::string boundary = contentType.substr(boundaryPos + 9);
-				boundary = "--" + boundary;
-
-				std::string body = httpRequest.getBody();
-
-				std::string contentLengthStr = httpRequest.getHeader("Content-Length");
 				return generateSuccessResponse("Files uploaded successfully");
 			}
 		}
@@ -800,20 +793,17 @@ void webServer::setServerNames(const std::map<std::string, std::string>& serverN
 void webServer::setClientMaxBodySize(const std::string& serverName, size_t size) 
 {
 	_clientMaxBodySizes[serverName] = size;
-	std::cout << "Set client_max_body_size for server '" << serverName
-			  << "' to " << size << " bytes\n";
+	std::cout << "Set client_max_body_size for server '" << serverName << "' to " << size << " bytes\n";
 }
 
 size_t webServer::getClientMaxBodySize(const std::string& serverName) const 
 {
-	// Try exact match first
 	auto it = _clientMaxBodySizes.find(serverName);
 	if (it != _clientMaxBodySizes.end()) 
 	{
 		return it->second;
 	}
 
-	// Try without port number
 	size_t colonPos = serverName.find(":");
 	if (colonPos != std::string::npos) 
 	{
@@ -824,17 +814,14 @@ size_t webServer::getClientMaxBodySize(const std::string& serverName) const
 			return it->second;
 		}
 	}
-	// Try just "localhost" as fallback
 	it = _clientMaxBodySizes.find("localhost");
 	if (it != _clientMaxBodySizes.end()) 
 	{
-		std::cout << "Found client_max_body_size for 'localhost': "
-				 << it->second << " bytes\n";
+		std::cout << "Found client_max_body_size for 'localhost': " << it->second << " bytes\n";
 		return it->second;
 	}
 
-	std::cout << "Using default client_max_body_size for server '" << serverName
-			 << "': 1048576 bytes\n";
+	std::cout << "Using default client_max_body_size for server '" << serverName << "': 1048576 bytes\n";
 	return 1048576;
 }
 
@@ -907,7 +894,6 @@ std::string webServer::readFullRequest(int clientSocket)
 		bytesRead = recv(clientSocket, buffer, sizeof(buffer), 0);
 		if (bytesRead < 0) 
 		{
-			std::cerr << "[ERROR] recv() failed" << std::endl;
 			return "";
 		} 
 		else if (bytesRead == 0) 
@@ -932,7 +918,6 @@ std::string webServer::readFullRequest(int clientSocket)
 			std::string headerSection = request.substr(0, headersEnd);
 			auto headers = parseHeaders(headerSection);
 
-			// Handle "Expect: 100-continue" if present
 			auto expectIt = headers.find("Expect");
 			if (expectIt != headers.end() && expectIt->second == "100-continue") 
 			{
@@ -944,7 +929,6 @@ std::string webServer::readFullRequest(int clientSocket)
 			contentLength = getContentLength(headers);
 			totalRead = request.size() - headerEndIndex;
 
-			// Sprawdzenie, czy Host istnieje
 			size_t maxBodySize = 0;
 			auto hostIt = headers.find("Host");
 			if (hostIt != headers.end()) 
@@ -952,12 +936,9 @@ std::string webServer::readFullRequest(int clientSocket)
 				maxBodySize = getClientMaxBodySize(hostIt->second);
 			}
 
-			// Check if the request size exceeds the maximum allowed size
 			if (contentLength > maxBodySize) 
 			{
-				std::cerr << "[ERROR] Request size (" << contentLength
-						  << " bytes) exceeds client_max_body_size (" << maxBodySize
-						  << " bytes)\n";
+				std::cerr << "[ERROR] Request size (" << contentLength << " bytes) exceeds client_max_body_size (" << maxBodySize << " bytes)\n";
 				std::string response = generateErrorResponse(413, "Payload Too Large");
 				Socket clientSock(clientSocket);
 				sendResponse(clientSock, response);
@@ -965,16 +946,16 @@ std::string webServer::readFullRequest(int clientSocket)
 			}
 		}
 	}
-
-	// Read the body
 	while (totalRead < contentLength) 
 	{
 		size_t toRead = std::min(sizeof(buffer), contentLength - totalRead);
 		bytesRead = recv(clientSocket, buffer, toRead, 0);
-		if (bytesRead < 0) {
-			std::cerr << "[ERROR] recv() failed" << std::endl;
+		if (bytesRead < 0) 
+		{
 			continue;
-		} else if (bytesRead == 0) {
+		} 
+		else if (bytesRead == 0) 
+		{
 			std::cerr << "[ERROR] Connection closed before full body received" << std::endl;
 			return "";
 		}

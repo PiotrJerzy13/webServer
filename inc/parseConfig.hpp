@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   parseConfig.hpp                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: pwojnaro <pwojnaro@student.42.fr>          +#+  +:+       +#+        */
+/*   By: anamieta <anamieta@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/12 17:50:48 by eleni             #+#    #+#             */
-/*   Updated: 2025/03/22 16:01:00 by pwojnaro         ###   ########.fr       */
+/*   Updated: 2025/03/23 15:33:43 by anamieta         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,19 +20,19 @@
 #include <vector>
 #include <string>
 #include <map>
-#include "webServer.hpp"
+#include "WebServer.hpp"
 
 class parseConfig {
 	public:
 		// Constructor
 		parseConfig() {}
-	
+
 		// **Parsing Storage**
 		std::unordered_multimap<std::string, std::string> _parsingServer;
 		std::unordered_multimap<std::string, std::vector<std::string>> _parsingLocation;
 		std::map<std::string, bool> _autoindexConfig;
 		std::string _mainString;
-	
+
 		// **Struct for CGI Configuration**
 		struct CGIConfig
 		{
@@ -54,17 +54,17 @@ class parseConfig {
 		const std::string& getIndex() const;
 		const std::map<std::string, bool>& getAutoindexConfig() const;
 		const parseConfig::CGIConfig& getCGIConfig(const std::string& location) const;
-	
+
 		// **Public Setter & Parsing Functions**
 		void parseClientMaxBodySize(const std::string& line);
 		void parse(const std::string& filename);
-	
+
 		// **Error Handling**
 		class SyntaxErrorException : public std::exception {
 		public:
 			const char* what() const throw();
 		};
-	
+
 	private:
 		// **Storage for Parsed Configuration**
 		std::string _location;
@@ -72,7 +72,7 @@ class parseConfig {
 		std::vector<std::string> _methods;
 		std::stack<std::string> _blocks;
 		std::string _index;
-	
+
 		// **Configuration Data Structures**
 		std::map<std::string, CGIConfig> _cgiConfig;
 		std::map<std::string, size_t> _clientMaxBodySize;
@@ -81,7 +81,7 @@ class parseConfig {
 		std::map<std::string, std::string> _rootDirectories;
 		std::map<std::string, std::string> _redirections;
 		std::map<std::string, std::vector<std::string>> _allowedMethods;
-	
+
 		// **Parsing Functions**
 		void splitMaps(std::string& line, int& brackets);
 		void trimServer(const std::string& line);
@@ -89,4 +89,3 @@ class parseConfig {
 		std::string trim(const std::string& line);
 		void fillLocationMap(std::string& line, const std::string& location);
 };
-	

@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   CGIHandler.cpp                                     :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: pwojnaro <pwojnaro@student.42.fr>          +#+  +:+       +#+        */
+/*   By: anamieta <anamieta@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/03/21 20:54:27 by pwojnaro          #+#    #+#             */
-/*   Updated: 2025/03/22 17:07:31 by pwojnaro         ###   ########.fr       */
+/*   Updated: 2025/03/23 15:30:47 by anamieta         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,26 +22,26 @@ CGIHandler::CGIHandler(const std::unordered_multimap<std::string, std::string>& 
 
 void CGIHandler::handleTimeout(int signal)
 {
-	if (signal == SIGALRM) 
+	if (signal == SIGALRM)
 	{
 		timeoutOccurred = 1;
 	}
 }
 
-const CGIHandler::CGIConfig& CGIHandler::getCGIConfig(const std::string& requestPath) const 
+const CGIHandler::CGIConfig& CGIHandler::getCGIConfig(const std::string& requestPath) const
 {
 	std::string bestMatch = "";
-	for (const auto& [location, config] : _cgiConfig) 
+	for (const auto& [location, config] : _cgiConfig)
 	{
-		if (requestPath.find(location) == 0) 
+		if (requestPath.find(location) == 0)
 		{
-			if (location.length() > bestMatch.length()) 
+			if (location.length() > bestMatch.length())
 			{
 				bestMatch = location;
 			}
 		}
 	}
-	if (!bestMatch.empty()) 
+	if (!bestMatch.empty())
 	{
 		return _cgiConfig.at(bestMatch);
 	}
@@ -49,18 +49,18 @@ const CGIHandler::CGIConfig& CGIHandler::getCGIConfig(const std::string& request
 	return defaultConfig;
 }
 
-const std::map<std::string, CGIHandler::CGIConfig>& CGIHandler::getCGIConfigs() const 
+const std::map<std::string, CGIHandler::CGIConfig>& CGIHandler::getCGIConfigs() const
 {
 	return _cgiConfig;
 }
 
-void CGIHandler::setCGIConfig(const std::map<std::string, CGIConfig>& cgiConfig) 
+void CGIHandler::setCGIConfig(const std::map<std::string, CGIConfig>& cgiConfig)
 {
 	_cgiConfig = cgiConfig;
 }
 
-std::string CGIHandler::executeCGI(const std::string& scriptPath, const std::string& method, 
-	const std::string& queryString, const std::string& requestBody) 
+std::string CGIHandler::executeCGI(const std::string& scriptPath, const std::string& method,
+	const std::string& queryString, const std::string& requestBody)
 {
 	signal(SIGALRM, handleTimeout);
 	timeoutOccurred = 0;
@@ -209,11 +209,11 @@ std::string CGIHandler::executeCGI(const std::string& scriptPath, const std::str
 			if (bytesRead > 0)
 			{
 				cgiOutput.append(buffer, bytesRead);
-			} 
+			}
 			else if (bytesRead == 0)
 			{
 				break;
-			} 
+			}
 			else
 			{
 				break;
@@ -231,7 +231,7 @@ std::string CGIHandler::executeCGI(const std::string& scriptPath, const std::str
 		{
 			std::string httpVersion = "HTTP/1.1";
 			auto it = _serverConfig.find("http_version");
-			if (it != _serverConfig.end()) 
+			if (it != _serverConfig.end())
 			{
 				httpVersion = it->second;
 			}

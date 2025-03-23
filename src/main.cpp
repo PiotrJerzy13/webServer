@@ -3,16 +3,16 @@
 /*                                                        :::      ::::::::   */
 /*   main.cpp                                           :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: pwojnaro <pwojnaro@student.42.fr>          +#+  +:+       +#+        */
+/*   By: anamieta <anamieta@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/03/05 15:57:27 by piotr             #+#    #+#             */
-/*   Updated: 2025/03/23 14:59:42 by pwojnaro         ###   ########.fr       */
+/*   Updated: 2025/03/23 15:52:40 by anamieta         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "parseConfig.hpp"
-#include "webServer.hpp"
-#include "utils.hpp"
+#include "ParseConfig.hpp"
+#include "WebServer.hpp"
+#include "Utils.hpp"
 #include "CGIHandler.hpp"
 #include <thread>
 #include <vector>
@@ -23,7 +23,7 @@ int main(int argc, char** argv)
 	std::string filename;
 	if (argc > 2)
 	{
-		std::cout << "Usage: ./webserv <file.config>" << std::endl;
+		std::cout << BOLD(YELLOW("Usage: ./webserv <file.config>")) << std::endl;
 		return 1;
 	}
 	else if (argc == 1)
@@ -34,7 +34,7 @@ int main(int argc, char** argv)
 	std::ifstream file(filename);
 	if (!file.is_open())
 	{
-		std::cerr << "Error: Could not open configuration file: " << filename << std::endl;
+		std::cerr << RED("[ERROR] Could not open configuration file: " << filename) << std::endl;
 		return 1;
 	}
 
@@ -52,26 +52,16 @@ int main(int argc, char** argv)
 			std::shared_ptr<webServer> server = std::make_shared<webServer>(
 				parser[j]._parsingServer, parser[j]._parsingLocation);
 
-			// Set the autoindex configuration 
 			server->setAutoindexConfig(parser[j]._autoindexConfig);
-
-			// Set the redirections 
 			server->setRedirections(parser[j].getRedirections());
-
-			// Set the server names 
 			server->setServerNames(parser[j].getServerNames());
-
-			// Set the root directories
 			server->setRootDirectories(parser[j].getRootDirectories());
-
-			// Set the allowed methods
 			server->setAllowedMethods(parser[j].getAllowedMethods());
 
-			// Set the CGI configuration
 			std::map<std::string, CGIHandler::CGIConfig> webServerCGIConfig;
 			const auto& parserCGIConfig = parser[j].getCGIConfigs();
 
-			for (const auto& [location, config] : parserCGIConfig) 
+			for (const auto& [location, config] : parserCGIConfig)
 			{
 				CGIHandler::CGIConfig serverConfig;
 				serverConfig.cgiPass = config.cgiPass;
@@ -84,7 +74,7 @@ int main(int argc, char** argv)
 
 			server->getCGIHandler().setCGIConfig(webServerCGIConfig);
 
-			for (const auto& [serverBlock, serverName] : parser[j].getServerNames()) 
+			for (const auto& [serverBlock, serverName] : parser[j].getServerNames())
 			{
 				size_t maxBodySize = parser[j].getClientMaxBodySize(serverBlock);
 				server->setClientMaxBodySize(serverName, maxBodySize);
@@ -97,7 +87,7 @@ int main(int argc, char** argv)
 		}
 		catch (const std::exception& e)
 		{
-			std::cerr << "Error starting server: " << e.what() << '\n';
+			std::cerr << RED("[ERROR] starting server: " << e.what()) << '\n';
 		}
 	}
 
@@ -117,25 +107,24 @@ int main(int argc, char** argv)
  * ps aux | grep webServ
  * watch -n 1 "ps -o pid,rss,vsz,etime,command -p PID"
  * lsof -i :8082
- * 
- * Setup multiple servers with different hostnames (use something like: curl --resolve 
- * 
+ * Setup multiple servers with different hostnames (use something like: curl --resolve
+ *
  * curl -v --resolve server2.local:8081:127.0.0.1 http://server2.local:8081/
  * curl -v --resolve localhost:8082:127.0.0.1 http://localhost:8082/
- * 
+ *
  * POST commands:
  * curl -v -X POST --resolve localhost:8082:127.0.0.1 \
  * -H "Content-Type: text/plain" --data "This is a short request." http://localhost:8082/
- * 
+ *
  * curl -v -X POST --resolve localhost:8082:127.0.0.1 -H "Content-Type: multipart/form-data" -F "file=@file.txt" http://localhost:8082/upload
- * 
+ *
  * curl -v -X DELETE --resolve localhost:8082:127.0.0.1 http://localhost:8082/upload/file.txt
  * curl -v -X FOO http://localhost:8082/
  * curl -v http://localhost:8082/upload/file.txt -o downloaded.txt
- * 
+ *
  * CGI
  * curl -v http://localhost:8082/cgi-bin/script.py
  * curl -X POST -d "name=John&age=25" "http://localhost:8082/cgi-bin/script.py"
  * curl -v http://localhost:8082/cgi-bin/infinite.py
- * 
+ *
 */

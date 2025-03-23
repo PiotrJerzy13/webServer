@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   webServer.hpp                                      :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: pwojnaro <pwojnaro@student.42.fr>          +#+  +:+       +#+        */
+/*   By: anamieta <anamieta@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/16 21:11:58 by anamieta          #+#    #+#             */
-/*   Updated: 2025/03/22 16:31:58 by pwojnaro         ###   ########.fr       */
+/*   Updated: 2025/03/23 15:33:43 by anamieta         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -31,12 +31,13 @@
 #include <filesystem>
 #include <csignal>
 #include <sys/stat.h>
-#include "socket.hpp"
+#include "Socket.hpp"
 #include "SocketManager.hpp"
 #include "HTTPRequest.hpp"
-#include "parseConfig.hpp"
+#include "ParseConfig.hpp"
 #include "CGIHandler.hpp"
 #include <map>
+#include "Colors.hpp"
 
 class webServer {
 	public:

@@ -6,7 +6,7 @@
 /*   By: anamieta <anamieta@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/03/07 18:48:10 by pwojnaro          #+#    #+#             */
-/*   Updated: 2025/03/18 17:04:00 by anamieta         ###   ########.fr       */
+/*   Updated: 2025/03/23 15:30:15 by anamieta         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,6 +15,7 @@
 #include <string>
 #include <unordered_map>
 #include <sstream>
+#include "Colors.hpp"
 
 class HTTPRequest {
 	public:

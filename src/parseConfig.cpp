@@ -3,14 +3,14 @@
 /*                                                        :::      ::::::::   */
 /*   parseConfig.cpp                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: pwojnaro <pwojnaro@student.42.fr>          +#+  +:+       +#+        */
+/*   By: anamieta <anamieta@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/12 18:29:11 by eleni             #+#    #+#             */
-/*   Updated: 2025/03/22 16:01:10 by pwojnaro         ###   ########.fr       */
+/*   Updated: 2025/03/23 15:33:43 by anamieta         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "parseConfig.hpp"
+#include "ParseConfig.hpp"
 #include <map>
 #include <sstream>
 #include <iostream>
@@ -19,30 +19,30 @@
 // ------------------------------------------------------------------------
 // Constructor and Parsing Methods
 // ------------------------------------------------------------------------
-void parseConfig::parse(const std::string& filename) 
+void parseConfig::parse(const std::string& filename)
 {
 	std::string line;
 	int brackets = 0;
 	std::istringstream file(filename);
 
-	while (std::getline(file, line)) 
+	while (std::getline(file, line))
 	{
 		splitMaps(line, brackets);
 	}
 
-	if (brackets != 0) 
+	if (brackets != 0)
 	{
-		std::cerr << "DEBUG: Mismatched brackets in configuration file." << std::endl;
+		std::cerr << YELLOW("[INFO] Mismatched brackets in configuration file.") << std::endl;
 		throw SyntaxErrorException();
 	}
 
-	std::cout << "DEBUG: Configuration file parsed successfully." << std::endl;
+	std::cout << GREEN("[INFO] Configuration file parsed successfully.") << std::endl;
 }
 
 // ------------------------------------------------------------------------
 // String Trimming Helpers
 // ------------------------------------------------------------------------
-std::string parseConfig::trim(const std::string& line) 
+std::string parseConfig::trim(const std::string& line)
 {
 	size_t first = line.find_first_not_of(" \t");
 	size_t last = line.find_last_not_of(" \t");
@@ -80,7 +80,7 @@ void parseConfig::splitMaps(std::string& line, int& brackets)
 	if (line.find('{') != std::string::npos)
 	{
 		brackets++;
-	} 
+	}
 	else if (line.find('}') != std::string::npos)
 	{
 		if (brackets == 4)
@@ -99,7 +99,7 @@ void parseConfig::splitMaps(std::string& line, int& brackets)
 		_blocks.push("server");
 		_currentServerBlock = "server" + std::to_string(_serverNames.size() + 1);
 		return;
-	} 
+	}
 	else if (line.find("location") != std::string::npos)
 	{
 		if (brackets > 3)
@@ -109,41 +109,41 @@ void parseConfig::splitMaps(std::string& line, int& brackets)
 		_location = trimLocation(line);
 		_parsingLocation.insert({_location, std::vector<std::string>()});
 		return;
-	} 
+	}
 	else if (!_blocks.empty() && _blocks.top() == "server")
 	{
 		trimServer(line);
-	} 
-	else if (!_blocks.empty() && _blocks.top() == "location") 
+	}
+	else if (!_blocks.empty() && _blocks.top() == "location")
 	{
 		fillLocationMap(line, _location);
 	}
 }
 
-void parseConfig::trimServer(const std::string& line) 
+void parseConfig::trimServer(const std::string& line)
 {
 	std::string trimmedLine = trim(line);
 	if (trimmedLine.empty())
 		return;
 
 	size_t pos = trimmedLine.find_first_of(" \t");
-	if (pos != std::string::npos) 
+	if (pos != std::string::npos)
 	{
 		std::string key = trim(trimmedLine.substr(0, pos));
 		std::string value = trim(trimmedLine.substr(pos + 1));
 
-		if (key == "server_name") 
+		if (key == "server_name")
 		{
 			_serverNames[_currentServerBlock] = value;
-		} 
-		else if (key == "client_max_body_size") 
+		}
+		else if (key == "client_max_body_size")
 		{
 			parseClientMaxBodySize(value);
-		} 
-		else if (key == "index") 
+		}
+		else if (key == "index")
 		{
 			_index = value;
-		} 
+		}
 		else if (key == "error_pages")
 		{
 			std::istringstream errorStream(value);
@@ -154,22 +154,22 @@ void parseConfig::trimServer(const std::string& line)
 				_errorPages[errorCode] = "www/html" + errorPath;
 			}
 		}
-		else 
+		else
 		{
 			_parsingServer.insert({key, value});
 		}
-		
+
 	}
 }
 
-void parseConfig::fillLocationMap(std::string& line, const std::string& location) 
+void parseConfig::fillLocationMap(std::string& line, const std::string& location)
 {
 	std::string trimmedLine = trim(line);
 	if (trimmedLine.empty())
 		return;
 
 	size_t pos = trimmedLine.find_first_of(" \t");
-	if (pos != std::string::npos) 
+	if (pos != std::string::npos)
 	{
 		std::string key = trim(trimmedLine.substr(0, pos));
 		std::string value = trim(trimmedLine.substr(pos + 1));
@@ -177,24 +177,24 @@ void parseConfig::fillLocationMap(std::string& line, const std::string& location
 		if (key == "root")
 		{
 			_rootDirectories[location] = value;
-		} 
-		else if (key == "autoindex") 
+		}
+		else if (key == "autoindex")
 		{
 			_autoindexConfig[location] = (value == "on");
-		} 
-		else if (key == "return") 
+		}
+		else if (key == "return")
 		{
 			_redirections[location] = value;
-		} 
-		else if (key == "methods") 
+		}
+		else if (key == "methods")
 		{
 			std::istringstream methodStream(value);
 			std::string method;
-			while (methodStream >> method) 
+			while (methodStream >> method)
 			{
 				_allowedMethods[location].push_back(method);
 			}
-		} else if (key == "cgi_pass") 
+		} else if (key == "cgi_pass")
 		{
 			_cgiConfig[location].cgiPass = value;
 		}
@@ -203,7 +203,7 @@ void parseConfig::fillLocationMap(std::string& line, const std::string& location
 // ------------------------------------------------------------------------
 // CGI Configuration Parsing
 // ------------------------------------------------------------------------
-const parseConfig::CGIConfig& parseConfig::getCGIConfig(const std::string& location) const 
+const parseConfig::CGIConfig& parseConfig::getCGIConfig(const std::string& location) const
 {
 	static CGIConfig emptyConfig;
 	auto it = _cgiConfig.find(location);
@@ -213,7 +213,7 @@ const parseConfig::CGIConfig& parseConfig::getCGIConfig(const std::string& locat
 // ------------------------------------------------------------------------
 // Utility Functions
 // ------------------------------------------------------------------------
-void parseConfig::parseClientMaxBodySize(const std::string& value) 
+void parseConfig::parseClientMaxBodySize(const std::string& value)
 {
 	std::string trimmedValue = trim(value);
 	if (trimmedValue.empty())
@@ -226,8 +226,8 @@ void parseConfig::parseClientMaxBodySize(const std::string& value)
 	if (unitPos == std::string::npos)
 	{
 		numericPart = std::stoi(trimmedValue);
-	} 
-	else 
+	}
+	else
 	{
 		numericPart = std::stoi(trimmedValue.substr(0, unitPos));
 		unit = trim(trimmedValue.substr(unitPos));
@@ -250,38 +250,38 @@ void parseConfig::parseClientMaxBodySize(const std::string& value)
 // ------------------------------------------------------------------------
 // Getters for Configuration Data
 // ------------------------------------------------------------------------
-const std::map<std::string, std::string>& parseConfig::getRedirections() const 
+const std::map<std::string, std::string>& parseConfig::getRedirections() const
 {
 	return _redirections;
 }
 
-const std::map<std::string, std::string>& parseConfig::getServerNames() const 
+const std::map<std::string, std::string>& parseConfig::getServerNames() const
 {
 	return _serverNames;
 }
 
-const std::map<std::string, std::string>& parseConfig::getRootDirectories() const 
+const std::map<std::string, std::string>& parseConfig::getRootDirectories() const
 {
 	return _rootDirectories;
 }
 
-const std::map<std::string, bool>& parseConfig::getAutoindexConfig() const 
+const std::map<std::string, bool>& parseConfig::getAutoindexConfig() const
 {
 	return _autoindexConfig;
 }
 
-size_t parseConfig::getClientMaxBodySize(const std::string& serverBlock) const 
+size_t parseConfig::getClientMaxBodySize(const std::string& serverBlock) const
 {
 	auto it = _clientMaxBodySize.find(serverBlock);
 	return (it != _clientMaxBodySize.end()) ? it->second : 1048576;
 }
 
-const std::map<std::string, std::vector<std::string>>& parseConfig::getAllowedMethods() const 
+const std::map<std::string, std::vector<std::string>>& parseConfig::getAllowedMethods() const
 {
 	return _allowedMethods;
 }
 
-const std::map<std::string, parseConfig::CGIConfig>& parseConfig::getCGIConfigs() const 
+const std::map<std::string, parseConfig::CGIConfig>& parseConfig::getCGIConfigs() const
 {
 	return _cgiConfig;
 }
@@ -299,7 +299,7 @@ const std::string& parseConfig::getIndex() const
 // ------------------------------------------------------------------------
 // Exception Handling
 // ------------------------------------------------------------------------
-const char* parseConfig::SyntaxErrorException::what() const throw() 
+const char* parseConfig::SyntaxErrorException::what() const throw()
 {
 	return "Exception: Brackets or ';' is missing";
 }

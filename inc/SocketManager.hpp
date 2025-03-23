@@ -3,22 +3,23 @@
 /*                                                        :::      ::::::::   */
 /*   SocketManager.hpp                                  :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: pwojnaro <pwojnaro@student.42.fr>          +#+  +:+       +#+        */
+/*   By: anamieta <anamieta@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/03/07 16:04:37 by pwojnaro          #+#    #+#             */
-/*   Updated: 2025/03/22 16:24:22 by pwojnaro         ###   ########.fr       */
+/*   Updated: 2025/03/23 15:33:21 by anamieta         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-# pragma once
+#pragma once
 
 #include <vector>
 #include <poll.h>
 #include <netinet/in.h>
 #include <stdexcept>
 #include <iostream>
-#include "socket.hpp"
+#include "Socket.hpp"
 #include <optional>
+#include "Colors.hpp"
 
 class SocketManager {
 public:

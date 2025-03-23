@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HTTPRequest.cpp                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: pwojnaro <pwojnaro@student.42.fr>          +#+  +:+       +#+        */
+/*   By: anamieta <anamieta@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/03/07 18:49:05 by pwojnaro          #+#    #+#             */
-/*   Updated: 2025/03/22 16:38:37 by pwojnaro         ###   ########.fr       */
+/*   Updated: 2025/03/23 15:30:05 by anamieta         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,7 +21,7 @@ HTTPRequest::HTTPRequest(const std::string& rawRequest)
 	parseRequest(rawRequest);
 }
 
-void HTTPRequest::parseRequest(const std::string& rawRequest) 
+void HTTPRequest::parseRequest(const std::string& rawRequest)
 {
 	std::istringstream requestStream(rawRequest);
 	requestStream >> method >> path >> version;
@@ -41,7 +41,7 @@ void HTTPRequest::parseRequest(const std::string& rawRequest)
 		}
 
 		size_t colonPos = line.find(':');
-		if (colonPos != std::string::npos) 
+		if (colonPos != std::string::npos)
 		{
 			std::string key = line.substr(0, colonPos);
 			std::string value = line.substr(colonPos + 1);
@@ -55,24 +55,24 @@ void HTTPRequest::parseRequest(const std::string& rawRequest)
 		body = rawRequest.substr(headerEnd + 4);
 
 		std::string contentLengthStr = getHeader("Content-Length");
-		if (!contentLengthStr.empty()) 
+		if (!contentLengthStr.empty())
 		{
 			size_t contentLength = std::stoul(contentLengthStr);
-			if (body.size() > contentLength) 
+			if (body.size() > contentLength)
 			{
 				body = body.substr(0, contentLength);
-			} 
-			else if (body.size() < contentLength) 
+			}
+			else if (body.size() < contentLength)
 			{
-				std::cerr << "[ERROR] Incomplete body: Expected " << contentLength
-						  << " bytes, got " << body.size() << " bytes" << std::endl;
+				std::cerr << RED("[ERROR] Incomplete body: Expected " << contentLength
+						  << " bytes, got " << body.size() << " bytes") << std::endl;
 				body.clear();
 			}
 		}
 	}
 	else
 	{
-		std::cout << "[DEBUG] No body found in request" << std::endl;
+		std::cout << YELLOW("[INFO] No body found in request") << std::endl;
 	}
 }
 
@@ -102,23 +102,23 @@ std::string HTTPRequest::getRawRequest() const
 	return rawRequest;
 }
 
-std::string HTTPRequest::getContentTypeFromHeaders(const std::string& fullRequest) 
+std::string HTTPRequest::getContentTypeFromHeaders(const std::string& fullRequest)
 {
 	size_t headersEnd = fullRequest.find("\r\n\r\n");
-	if (headersEnd == std::string::npos) 
+	if (headersEnd == std::string::npos)
 	{
 		return "";
 	}
 
 	std::string headers = fullRequest.substr(0, headersEnd);
 	size_t contentTypePos = headers.find("Content-Type: ");
-	if (contentTypePos == std::string::npos) 
+	if (contentTypePos == std::string::npos)
 	{
 		return "";
 	}
 
 	size_t contentTypeEnd = headers.find("\r\n", contentTypePos);
-	if (contentTypeEnd == std::string::npos) 
+	if (contentTypeEnd == std::string::npos)
 	{
 		return "";
 	}

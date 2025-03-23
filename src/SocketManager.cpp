@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   SocketManager.cpp                                  :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: pwojnaro <pwojnaro@student.42.fr>          +#+  +:+       +#+        */
+/*   By: anamieta <anamieta@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/03/07 16:05:11 by pwojnaro          #+#    #+#             */
-/*   Updated: 2025/03/21 19:51:00 by pwojnaro         ###   ########.fr       */
+/*   Updated: 2025/03/23 15:25:41 by anamieta         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -52,13 +52,13 @@ void SocketManager::createSocket(int port)
 
         if (bind(serverSocket.getFd(), (struct sockaddr*)&serverAddr, sizeof(serverAddr)) < 0)
 		{
-            std::cerr << "Error: Could not bind socket for port " << port << " (" << strerror(errno) << ")" << std::endl;
+            std::cerr << RED("[ERROR] Could not bind socket for port " << port << " (" << strerror(errno) << ")") << std::endl;
             return;
         }
 
         if (listen(serverSocket.getFd(), 50) < 0)
 		{
-            std::cerr << "Error: Could not listen on socket for port " << port << " (" << strerror(errno) << ")" << std::endl;
+            std::cerr << RED("[ERROR] Could not listen on socket for port " << port << " (" << strerror(errno) << ")") << std::endl;
             return;
         }
 
@@ -69,7 +69,7 @@ void SocketManager::createSocket(int port)
         pfd.events = POLLIN;
         _pollFds.push_back(pfd);
 
-        std::cout << "[INFO] Listening on port " << port << std::endl;
+        std::cout << GREEN("[INFO] Listening on port " << port) << std::endl;
     }
 	catch (const std::exception& e)
 	{
@@ -88,7 +88,7 @@ std::optional<int> SocketManager::acceptConnection(int serverFd)
     int clientFd = accept(serverFd, nullptr, nullptr);
     if (clientFd < 0)
     {
-        std::cerr << "Error: Could not accept connection" << std::endl;
+        std::cerr << RED("[ERROR] Could not accept connection") << std::endl;
         return std::nullopt;
     }
 
@@ -107,16 +107,16 @@ std::optional<int> SocketManager::acceptConnection(int serverFd)
     }
     else
     {
-        std::cerr << "[WARN] FD already in poll list: " << clientFd << std::endl;
+        std::cerr << YELLOW("[WARN] FD already in poll list: " << clientFd) << std::endl;
     }
 
-    std::cout << "[INFO] New client connected: " << clientFd << std::endl;
+    std::cout << GREEN("[INFO] New client connected: " << clientFd) << std::endl;
     return clientFd;
 }
 
 void SocketManager::closeSocket(int fd)
 {
-    std::cout << "[INFO] Closing socket: " << fd << std::endl;
+    std::cout << BLUE("[INFO] Closing socket: " << fd) << std::endl;
 
     _pollFds.erase( std::remove_if(_pollFds.begin(), _pollFds.end(),
     [fd](const struct pollfd &pfd) { return pfd.fd == fd; }),_pollFds.end()
@@ -139,7 +139,7 @@ void SocketManager::setNonBlocking(int socketFd)
 {
     if (fcntl(socketFd, F_SETFL, O_NONBLOCK) == -1)
 	{
-        std::cerr << "Error: Could not set socket to non-blocking" << std::endl;
+        std::cerr << RED("[ERROR] Could not set socket to non-blocking") << std::endl;
     }
 }
 /**
@@ -156,7 +156,7 @@ std::optional<std::string> SocketManager::isPortAvailable(int port)
     FILE* pipe = popen(command.c_str(), "r");
     if (!pipe)
 	{
-        std::cerr << "Error: Failed to run command: " << command << std::endl;
+        std::cerr << RED("[ERROR] Failed to run command: " << command) << std::endl;
         return "Failed to run command";
     }
 
@@ -168,15 +168,15 @@ std::optional<std::string> SocketManager::isPortAvailable(int port)
     int exitStatus = pclose(pipe);
     if (exitStatus == -1)
 	{
-        std::cerr << "Error: Failed to close pipe" << std::endl;
+        std::cerr << RED("[ERROR] Failed to close pipe") << std::endl;
         return "Failed to close pipe";
     }
 
-    std::cout << "Port " << port << " check result: " << (result.empty() ? "Available" : "In use") << std::endl;
+    std::cout << BOLD("Port " << port << " check result: " << (result.empty() ? "Available" : "In use")) << std::endl;
 
     if (!result.empty())
 	{
-        std::cout << "lsof output: " << result << std::endl;
+        std::cout << YELLOW("[INFO] lsof output: " << result) << std::endl;
         return result;
     }
     return std::nullopt; // Port is available

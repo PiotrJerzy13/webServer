@@ -6,7 +6,7 @@
 /*   By: pwojnaro <pwojnaro@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/03/05 15:57:27 by piotr             #+#    #+#             */
-/*   Updated: 2025/03/23 14:39:28 by pwojnaro         ###   ########.fr       */
+/*   Updated: 2025/03/23 14:59:42 by pwojnaro         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -114,7 +114,10 @@ int main(int argc, char** argv)
  * brew install siege
  * siege -b -t30s http://127.0.0.1:8082/
  * brew install watch
+ * ps aux | grep webServ
+ * watch -n 1 "ps -o pid,rss,vsz,etime,command -p PID"
  * lsof -i :8082
+ * 
  * Setup multiple servers with different hostnames (use something like: curl --resolve 
  * 
  * curl -v --resolve server2.local:8081:127.0.0.1 http://server2.local:8081/

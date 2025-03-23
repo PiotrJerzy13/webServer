@@ -6,7 +6,7 @@
 /*   By: pwojnaro <pwojnaro@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/16 21:12:30 by anamieta          #+#    #+#             */
-/*   Updated: 2025/03/22 17:05:06 by pwojnaro         ###   ########.fr       */
+/*   Updated: 2025/03/23 14:38:42 by pwojnaro         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -708,10 +708,27 @@ std::string webServer::generateDeleteResponse(const std::string& filePath)
 
 void webServer::sendResponse(Socket& clientSocket, const std::string& response)
 {
-	ssize_t bytesWritten = write(clientSocket.getFd(), response.c_str(), response.size());
-	if (bytesWritten < 0)
+	const char* buffer = response.c_str();
+	size_t totalBytes = response.size();
+	size_t bytesSent = 0;
+	
+	while (bytesSent < totalBytes)
 	{
-		std::cerr << "Error sending response: " << strerror(errno) << std::endl;
+		ssize_t bytesWritten = write(clientSocket.getFd(), buffer + bytesSent, totalBytes - bytesSent);
+		
+		if (bytesWritten < 0)
+		{
+			std::cerr << "Error sending response to client (write failed)" << std::endl;
+			closeConnection(clientSocket.getFd());
+		}
+		else if (bytesWritten == 0)
+		{
+			std::cerr << "Connection closed by peer during write" << std::endl;
+			closeConnection(clientSocket.getFd());
+			return;
+		}
+		
+		bytesSent += bytesWritten;
 	}
 }
 
@@ -914,7 +931,6 @@ std::string webServer::readFullRequest(int clientSocket)
 			headersComplete = true;
 			size_t headerEndIndex = headersEnd + 4;
 
-			// Parse headers
 			std::string headerSection = request.substr(0, headersEnd);
 			auto headers = parseHeaders(headerSection);
 
@@ -922,10 +938,12 @@ std::string webServer::readFullRequest(int clientSocket)
 			if (expectIt != headers.end() && expectIt->second == "100-continue") 
 			{
 				const char* continueResponse = "HTTP/1.1 100 Continue\r\n\r\n";
-				send(clientSocket, continueResponse, strlen(continueResponse), 0);
+				if (send(clientSocket, continueResponse, strlen(continueResponse), 0) <= 0)
+				{
+					std::cerr << "Error sending 100-continue response\n";
+					return "";
+				}
 			}
-
-			// Get content length
 			contentLength = getContentLength(headers);
 			totalRead = request.size() - headerEndIndex;
 

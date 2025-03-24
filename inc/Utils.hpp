@@ -3,16 +3,15 @@
 /*                                                        :::      ::::::::   */
 /*   utils.hpp                                          :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: eleni <eleni@student.42.fr>                +#+  +:+       +#+        */
+/*   By: anamieta <anamieta@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/02/20 13:29:16 by eleni             #+#    #+#             */
-/*   Updated: 2025/02/20 13:32:26 by eleni            ###   ########.fr       */
+/*   Updated: 2025/03/23 15:33:43 by anamieta         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #pragma once
 
-#include "parseConfig.hpp"
+#include "ParseConfig.hpp"
 
 std::vector<parseConfig> splitServers(std::ifstream& file);
-void printParsingLocation(const std::unordered_multimap<std::string, std::vector<std::string>>& parsingLocation);

@@ -3,14 +3,14 @@
 /*                                                        :::      ::::::::   */
 /*   security.cpp                                       :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: pwojnaro <pwojnaro@student.42.fr>          +#+  +:+       +#+        */
+/*   By: anamieta <anamieta@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/03/02 15:42:48 by pwojnaro          #+#    #+#             */
-/*   Updated: 2025/03/02 16:08:58 by pwojnaro         ###   ########.fr       */
+/*   Updated: 2025/03/23 15:32:36 by anamieta         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "webServer.hpp"
+#include "WebServer.hpp"
 
 std::string webServer::sanitizePath(const std::string& path)
 {
@@ -36,7 +36,7 @@ std::string webServer::sanitizePath(const std::string& path)
 	{
         segments.push_back(currentSegment);
     }
-    
+
     std::vector<std::string> normalizedSegments;
     for (const auto& segment : segments)
 	{
@@ -56,7 +56,7 @@ std::string webServer::sanitizePath(const std::string& path)
             normalizedSegments.push_back(segment);
         }
     }
-    
+
     std::string normalizedPath = "/";
     for (size_t i = 0; i < normalizedSegments.size(); i++)
 	{

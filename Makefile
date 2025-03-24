@@ -17,14 +17,16 @@ OBJ_DIR = ./objs/
 
 # Source and Object files
 SRC = $(SRC_DIR)main.cpp \
-      $(SRC_DIR)parseConfig.cpp \
-	  $(SRC_DIR)webServer.cpp \
-	  $(SRC_DIR)utils.cpp \
-	  $(SRC_DIR)security.cpp \
-	  $(SRC_DIR)socket.cpp \
+      $(SRC_DIR)ParseConfig.cpp \
+	  $(SRC_DIR)WebServer.cpp \
+	  $(SRC_DIR)Utils.cpp \
+	  $(SRC_DIR)Security.cpp \
+	  $(SRC_DIR)Socket.cpp \
 	  $(SRC_DIR)SocketManager.cpp \
 	  $(SRC_DIR)HTTPRequest.cpp \
 	  $(SRC_DIR)HTTPResponse.cpp \
+	  $(SRC_DIR)FileUtils.cpp \
+	  $(SRC_DIR)CGIHandler.cpp \
 
 
 OBJ = $(addprefix $(OBJ_DIR), $(notdir $(SRC:.cpp=.o)))

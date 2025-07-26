@@ -46,11 +46,6 @@ bash
 ./webserv [path_to_config_file]
 If no config path is provided, it will use a default configuration.
 
-## 📁 Example Configuration
-
-```markdown
-## 📁 Example Configuration
-
 Here's a minimal example of a config file:
 
 ```conf
